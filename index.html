@@ -599,7 +599,8 @@ async function tbShowProfile(userId){
   tbLoadVideos(userId);
 }
 function tbClose(id){
-  if (id === "tbLoginModal" && !user) return; // must log in first $(id).classList.remove("show"); }
+  if (id === "tbLoginModal" && !user) return; /* must log in first */
+  $(id).classList.remove("show"); }
 
 async function tbLoadProfile(){
   $("tbLogoutBtn").style.display = user ? "" : "none";
