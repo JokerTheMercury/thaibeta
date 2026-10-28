@@ -13,8 +13,6 @@ body{margin:0;font-family:system-ui,-apple-system,"Segoe UI","Noto Sans Thai",sa
 header{padding:28px 24px 12px;text-align:center}
 header h1{margin:0;font-size:2rem}header h1 span{color:var(--accent)}
 header p{margin:6px 0 0;color:var(--muted)}
-.authbar{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center;margin-top:14px;font-size:.9rem}
-.authbar input{padding:8px 10px;background:var(--panel-2);border:1px solid #45382f;border-radius:10px;color:var(--text);width:190px}
 main{display:grid;grid-template-columns:380px 1fr;gap:24px;padding:20px 24px 48px;margin:0}
 @media(max-width:900px){main{grid-template-columns:1fr}}
 .panel{background:var(--panel);border:1px solid #3a2f28;border-radius:var(--radius);padding:20px}
@@ -93,6 +91,18 @@ button{border:0;border-radius:10px;padding:12px 16px;font-weight:700;cursor:poin
 .tb-vid-info b{font-size:1.2rem}
 .tb-msg{font-size:.85rem;margin-top:8px;min-height:1em}
 .tb-msg.err{color:var(--danger)}.tb-msg.ok{color:#5ad48a}
+.tb-nav.login{margin-top:auto;color:var(--accent)}
+.tb-login{background:#fff;color:#111;border-radius:10px;width:100%;max-width:300px;padding:22px 22px 14px;box-shadow:0 10px 40px rgba(0,0,0,.5);position:relative}
+.tb-login h2{margin:0 0 16px;font-size:1.9rem;font-weight:800;color:#111}
+.tb-login input{width:100%;padding:10px 8px;margin-bottom:12px;background:#fff;border:1px solid #cfd4da;border-radius:4px;color:#111;font-size:.9rem}
+.tb-login input::placeholder{color:#6b7280}
+.tb-login input:focus{outline:2px solid #0fa3b8;border-color:transparent}
+.tb-login-btn{width:100%;background:#0fa3b8;color:#fff;border-radius:3px;padding:10px;font-weight:600;margin-top:4px}
+.tb-login-btn:hover{background:#0b8fa2}
+.tb-login-btn:disabled{opacity:.6;cursor:wait}
+.tb-login-switch{display:block;margin:10px auto 0;background:none;color:#555;padding:4px;font-weight:400;font-size:.85rem}
+.tb-login-switch:hover{text-decoration:underline}
+.tb-login .tb-close{position:absolute;top:8px;right:8px;color:#999}
 .by-user{display:inline-flex;align-items:center;gap:6px;vertical-align:middle;background:none;border:0;padding:0;color:var(--text);font:inherit;font-weight:700;cursor:pointer}
 .by-user:hover span{color:var(--accent-2);text-decoration:underline}
 .by-user img{width:24px;height:24px;border-radius:50%;object-fit:cover;background:var(--panel-2);border:1px solid #45382f}
@@ -108,6 +118,7 @@ button{border:0;border-radius:10px;padding:12px 16px;font-weight:700;cursor:poin
   </div>
   <button class="tb-nav" onclick="tbOpen('tbProfileModal')">👤 Profile</button>
   <button class="tb-nav" onclick="tbOpen('tbSettingsModal')">⚙️ Settings</button>
+  <button class="tb-nav login" id="tbLoginBtn" onclick="tbOpenLogin()">🔑 Log in</button>
   <button class="tb-nav logout" id="tbLogoutBtn" onclick="tbLogout()">Log out</button>
 </aside>
 <button id="tbToggle" aria-label="Menu" onclick="document.getElementById('tbSidebar').classList.toggle('open')">☰</button>
@@ -156,12 +167,24 @@ button{border:0;border-radius:10px;padding:12px 16px;font-weight:700;cursor:poin
     <div id="tbPwMsg" class="tb-msg"></div>
   </div>
 </div>
+<!-- Log in / Sign up popup -->
+<div id="tbLoginModal" class="tb-modal" onclick="if(event.target===this)tbClose(this.id)">
+  <form class="tb-login" id="tbLoginForm">
+    <button type="button" class="tb-close" onclick="tbClose('tbLoginModal')">×</button>
+    <h2 id="tbLoginTitle">Log in</h2>
+    <input type="text" id="tbLoginName" placeholder="Username" maxlength="30" style="display:none" autocomplete="username">
+    <input type="email" id="tbLoginEmail" placeholder="Email" required autocomplete="email">
+    <input type="password" id="tbLoginPw" placeholder="Password" required minlength="6" autocomplete="current-password">
+    <button type="submit" class="tb-login-btn" id="tbLoginSubmit">Log in</button>
+    <div id="tbLoginMsg" class="tb-msg"></div>
+    <button type="button" class="tb-login-switch" id="tbLoginSwitch" onclick="tbLoginMode(!tbSignUp)">or, sign up</button>
+  </form>
+</div>
 <!-- ===================== END NEW ===================== -->
 
 <header>
   <h1>🧗 Thai<span>Beta</span></h1>
   <p>Review routes, share beta videos — climbing gyms across Thailand</p>
-  <div class="authbar" id="authbar"></div>
 </header>
 
 <main>
@@ -254,25 +277,46 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt
 function toast(msg){const t=$("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2800)}
 
 /* ---------- Auth ---------- */
-function drawAuth(){
-  $("authbar").innerHTML = user
-    ? `<span>👤 ${esc(user.email)}</span><button class="btn-sm alt" id="outBtn">Log out</button>`
-    : `<input type="email" id="em" placeholder="Email"><input type="password" id="pw" placeholder="Password (6+ chars)"><button class="btn-sm" id="inBtn">Log in</button><button class="btn-sm alt" id="upBtn">Sign up</button>`;
+let tbSignUp = false;
+function tbLoginMode(signUp){
+  tbSignUp = signUp;
+  $("tbLoginTitle").textContent = signUp ? "Sign up" : "Log in";
+  $("tbLoginSubmit").textContent = signUp ? "Sign up" : "Log in";
+  $("tbLoginSwitch").textContent = signUp ? "or, log in" : "or, sign up";
+  $("tbLoginName").style.display = signUp ? "" : "none";
+  $("tbLoginName").required = signUp;
+  $("tbLoginPw").autocomplete = signUp ? "new-password" : "current-password";
+  $("tbLoginMsg").textContent = "";
 }
-$("authbar").addEventListener("click", async e => {
-  const id = e.target.id;
-  if (id === "outBtn") return void (await sb.auth.signOut());
-  if (id !== "inBtn" && id !== "upBtn") return;
-  const email = $("em").value.trim(), password = $("pw").value;
-  const { error } = id === "inBtn"
-    ? await sb.auth.signInWithPassword({ email, password })
-    : await sb.auth.signUp({ email, password });
-  if (error) return toast(error.message);
-  if (id === "upBtn") toast("Signed up! Check your email if confirmation is required.");
+function tbOpenLogin(signUp = false){
+  $("tbSidebar").classList.remove("open");
+  tbLoginMode(signUp);
+  $("tbLoginModal").classList.add("show");
+  setTimeout(() => $(signUp ? "tbLoginName" : "tbLoginEmail").focus(), 0);
+}
+$("tbLoginForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const email = $("tbLoginEmail").value.trim(), password = $("tbLoginPw").value, username = $("tbLoginName").value.trim();
+  if (tbSignUp && username.length < 3) return tbMsg("tbLoginMsg", "Username must be at least 3 characters", false);
+  const btn = $("tbLoginSubmit"); btn.disabled = true;
+  const { data, error } = tbSignUp
+    ? await sb.auth.signUp({ email, password })
+    : await sb.auth.signInWithPassword({ email, password });
+  btn.disabled = false;
+  if (error) return tbMsg("tbLoginMsg", error.message, false);
+  if (tbSignUp && !data.session) return tbMsg("tbLoginMsg", "Check your email to confirm your account, then log in.", true);
+  if (tbSignUp) { // save the chosen username to the profile
+    const { error: pErr } = await sb.from("profiles").upsert({ id: data.user.id, username, updated_at: new Date().toISOString() });
+    if (pErr) toast(pErr.code === "23505" ? "That username is taken, change it in Settings" : pErr.message);
+    else { await tbLoadProfile(); render(); }
+  }
+  $("tbLoginPw").value = "";
+  tbClose("tbLoginModal");
+  toast(tbSignUp ? "Welcome to ThaiBeta! 🧗" : "Logged in");
 });
 sb.auth.onAuthStateChange((_event, session) => {
   user = session?.user ?? null;
-  setTimeout(() => { drawAuth(); render(); tbLoadProfile(); }, 0);   // avoid calling Supabase inside the callback
+  setTimeout(() => { render(); tbLoadProfile(); }, 0);   // avoid calling Supabase inside the callback
 });
 
 /* ---------- Form setup ---------- */
@@ -320,7 +364,7 @@ $("fileDrop").addEventListener("drop", e => { e.preventDefault(); setVideo(e.dat
 /* ---------- Submit (upload video → insert row) ---------- */
 $("reviewForm").addEventListener("submit", async e => {
   e.preventDefault();
-  if (!user) return toast("Please log in first (top of page)");
+  if (!user) return tbOpenLogin();
   if (!rating) return toast("Please give the route a rating ★");
   const btn = $("submitBtn"); btn.disabled = true; btn.textContent = "Publishing...";
   try {
@@ -465,7 +509,7 @@ let tbProfile = null;
 
 function tbMsg(id, text, ok){ const el = $(id); el.textContent = text; el.className = "tb-msg " + (ok ? "ok" : "err"); }
 function tbOpen(id){
-  if (!user) return toast("Please log in first (top of page)");
+  if (!user) return tbOpenLogin();
   $("tbSidebar").classList.remove("open");
   if (id === "tbProfileModal") return tbShowProfile(user.id);
   $(id).classList.add("show");
@@ -496,6 +540,7 @@ function tbClose(id){ $(id).classList.remove("show"); }
 
 async function tbLoadProfile(){
   $("tbLogoutBtn").style.display = user ? "" : "none";
+  $("tbLoginBtn").style.display = user ? "none" : "";
   if (!user){
     tbProfile = null;
     $("tbSideName").textContent = "Guest";
@@ -615,7 +660,7 @@ async function tbLogout(){
 }
 
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape") { tbClose("tbProfileModal"); tbClose("tbSettingsModal"); $("tbSidebar").classList.remove("open"); }
+  if (e.key === "Escape") { tbClose("tbProfileModal"); tbClose("tbSettingsModal"); tbClose("tbLoginModal"); $("tbSidebar").classList.remove("open"); }
 });
 </script>
 </body>
