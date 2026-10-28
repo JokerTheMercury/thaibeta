@@ -112,6 +112,9 @@ button{border:0;border-radius:10px;padding:12px 16px;font-weight:700;cursor:poin
 .tb-login-switch:hover{color:var(--accent-2);text-decoration:underline}
 .tb-login-switch:focus{outline:none}.tb-login-switch:focus-visible{outline:2px solid var(--accent)}
 .tb-login .tb-close{position:absolute;top:8px;right:8px;color:var(--muted)}
+body.tb-gated > :not(#tbLoginModal):not(.toast):not(script){filter:blur(6px);pointer-events:none;user-select:none}
+body.tb-gated #tbLoginModal{background:rgba(10,8,7,.7)}
+body.tb-gated .tb-login .tb-close{display:none}
 .by-user{display:inline-flex;align-items:center;gap:6px;vertical-align:middle;background:none;border:0;padding:0;color:var(--text);font:inherit;font-weight:700;cursor:pointer}
 .by-user:hover span{color:var(--accent-2);text-decoration:underline}
 .by-user img{width:24px;height:24px;border-radius:50%;object-fit:cover;background:var(--panel-2);border:1px solid #45382f}
@@ -165,7 +168,7 @@ button,.chip,.stars span,.file-drop{-webkit-tap-highlight-color:transparent;touc
 @media (min-width:901px) and (max-height:760px){header{padding:16px 24px 8px}}
 </style>
 </head>
-<body>
+<body class="tb-gated">
 
 <!-- ===================== NEW: Sidebar ===================== -->
 <aside id="tbSidebar">
@@ -319,7 +322,9 @@ const BUCKET = "videos";
 const GYMS = ["Stonegoat The Parq","Stonegoat S69","Balance Rama 9","Balance Prime","Urban Playground","Rock Domain","Climb Central","Beat Active","Boulder Planet"];
 const MAX_VIDEO_MB = 50;                            // Supabase free plan limit per file
 
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } // remember the account on this device
+});
 let user = null, cache = [], profilesById = {};
 
 /* ---------- Config ---------- */
@@ -368,7 +373,7 @@ $("tbLoginForm").addEventListener("submit", async e => {
     else { await tbLoadProfile(); render(); }
   }
   $("tbLoginPw").value = "";
-  tbClose("tbLoginModal");
+  $("tbLoginModal").classList.remove("show");
   toast(tbSignUp ? "Welcome to ThaiBeta! 🧗" : "Logged in");
 });
 sb.auth.onAuthStateChange((_event, session) => {
@@ -593,11 +598,14 @@ async function tbShowProfile(userId){
   $("tbProfileModal").classList.add("show");
   tbLoadVideos(userId);
 }
-function tbClose(id){ $(id).classList.remove("show"); }
+function tbClose(id){
+  if (id === "tbLoginModal" && !user) return; // must log in first $(id).classList.remove("show"); }
 
 async function tbLoadProfile(){
   $("tbLogoutBtn").style.display = user ? "" : "none";
   $("tbLoginBtn").style.display = user ? "none" : "";
+  document.body.classList.toggle("tb-gated", !user); // blur the site until logged in
+  if (user) $("tbLoginModal").classList.remove("show"); else if (!$("tbLoginModal").classList.contains("show")) tbOpenLogin();
   if (!user){
     tbProfile = null;
     $("tbSideName").textContent = "Guest";
