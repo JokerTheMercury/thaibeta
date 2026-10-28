@@ -86,9 +86,7 @@ button{border:0;border-radius:10px;padding:12px 16px;font-weight:700;cursor:poin
 .tb-grid video{width:100%;border-radius:10px;background:#000;max-height:260px}
 .tb-grid small,.tb-muted{color:var(--muted);font-size:.8rem}
 .tb-vid{position:relative}
-.tb-fs{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.55);color:#fff;padding:4px 8px;font-size:1rem;line-height:1;border-radius:8px}
 .tb-vid-info{display:none}
-.tb-vid video::-webkit-media-controls-fullscreen-button{display:none}
 .tb-vid:fullscreen{background:#000;display:flex;align-items:center;justify-content:center}
 .tb-grid .tb-vid:fullscreen video{width:100%;height:100%;max-height:none;border-radius:0;object-fit:contain}
 .tb-vid:fullscreen .tb-vid-info{display:block;position:absolute;left:24px;bottom:80px;max-width:min(520px,80vw);background:rgba(0,0,0,.6);color:#fff;padding:12px 16px;border-radius:12px;line-height:1.5;font-size:1rem;pointer-events:none}
@@ -560,8 +558,7 @@ async function tbLoadVideos(userId){
   return `
   <div>
     <div class="tb-vid">
-      <video src="${esc(sb.storage.from(BUCKET).getPublicUrl(r.video_path).data.publicUrl)}" controls controlslist="nofullscreen" preload="metadata"></video>
-      <button type="button" class="tb-fs" title="Full screen" onclick="tbVidFull(this)">⛶</button>
+      <video src="${esc(sb.storage.from(BUCKET).getPublicUrl(r.video_path).data.publicUrl)}" controls preload="metadata"></video>
       <div class="tb-vid-info">
         <b>${esc(title || "Beta video")}</b>
         ${where ? `<div>${esc(where)}</div>` : ""}
@@ -573,13 +570,22 @@ async function tbLoadVideos(userId){
 }).join("");
 }
 
-// Full screen the video together with its info box (native video full screen can't show overlays)
-function tbVidFull(el){
-  const box = el.closest(".tb-vid");
-  if (document.fullscreenElement) return void document.exitFullscreen();
-  (box.requestFullscreen || box.webkitRequestFullscreen).call(box);
-}
-document.addEventListener("dblclick", e => { const vid = e.target.closest(".tb-vid video"); if (vid) tbVidFull(vid); });
+// Profile videos: when the player's full screen button is pressed, full screen the video
+// together with its info box instead (plain video full screen can't show anything on top)
+let tbFsBox = null;
+document.addEventListener("fullscreenchange", async () => {
+  const fe = document.fullscreenElement;
+  if (fe && fe.tagName === "VIDEO" && fe.closest(".tb-vid")) {
+    const box = fe.closest(".tb-vid");
+    if (tbFsBox === box) { // button pressed again while in full screen → leave full screen
+      tbFsBox = null;
+      while (document.fullscreenElement) await document.exitFullscreen();
+      return;
+    }
+    tbFsBox = box;
+    box.requestFullscreen().catch(() => { tbFsBox = null; }); // if refused, plain video full screen still works
+  } else if (!fe) tbFsBox = null;
+});
 
 async function tbSaveUsername(){
   const name = $("tbNewName").value.trim();
