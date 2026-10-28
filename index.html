@@ -100,7 +100,7 @@ button{border:0;border-radius:10px;padding:12px 16px;font-weight:700;cursor:poin
 .tb-msg{font-size:.85rem;margin-top:8px;min-height:1em}
 .tb-msg.err{color:var(--danger)}.tb-msg.ok{color:#5ad48a}
 .tb-nav.login{margin-top:auto;color:var(--accent)}
-.tb-login{background:var(--panel);color:var(--text);border:1px solid #3a2f28;border-radius:var(--radius);width:100%;max-width:300px;padding:22px 22px 14px;box-shadow:0 10px 40px rgba(0,0,0,.6);position:relative;color-scheme:dark}
+.tb-login{background:var(--panel);color:var(--text);border:1px solid #3a2f28;border-radius:var(--radius);width:100%;max-width:300px;padding:40px 22px 14px;box-shadow:0 10px 40px rgba(0,0,0,.6);position:relative;color-scheme:dark}
 .tb-login h2{margin:0 0 16px;font-size:1.9rem;font-weight:800;color:var(--text)}
 .tb-login input{width:100%;padding:10px 12px;margin-bottom:12px;background:var(--panel-2);border:1px solid #45382f;border-radius:10px;color:var(--text);font-size:.9rem}
 .tb-login input::placeholder{color:var(--muted)}
@@ -111,10 +111,10 @@ button{border:0;border-radius:10px;padding:12px 16px;font-weight:700;cursor:poin
 .tb-login-switch{display:block;margin:10px auto 0;background:none;color:var(--muted);padding:4px 8px;font-weight:400;font-size:.85rem;border-radius:8px}
 .tb-login-switch:hover{color:var(--accent-2);text-decoration:underline}
 .tb-login-switch:focus{outline:none}.tb-login-switch:focus-visible{outline:2px solid var(--accent)}
-.tb-login .tb-close{position:absolute;top:8px;right:8px;color:var(--muted)}
+.tb-login .tb-close{position:absolute;top:8px;left:10px;right:auto;color:var(--muted)}
+.tb-login .tb-close:hover{color:var(--text)}
 body.tb-gated > :not(#tbLoginModal):not(.toast):not(script){filter:blur(6px);pointer-events:none;user-select:none}
 body.tb-gated #tbLoginModal{background:rgba(10,8,7,.7)}
-body.tb-gated .tb-login .tb-close{display:none}
 .by-user{display:inline-flex;align-items:center;gap:6px;vertical-align:middle;background:none;border:0;padding:0;color:var(--text);font:inherit;font-weight:700;cursor:pointer}
 .by-user:hover span{color:var(--accent-2);text-decoration:underline}
 .by-user img{width:24px;height:24px;border-radius:50%;object-fit:cover;background:var(--panel-2);border:1px solid #45382f}
@@ -230,7 +230,7 @@ button,.chip,.stars span,.file-drop{-webkit-tap-highlight-color:transparent;touc
 <!-- Log in / Sign up popup -->
 <div id="tbLoginModal" class="tb-modal" onclick="if(event.target===this)tbClose(this.id)">
   <form class="tb-login" id="tbLoginForm">
-    <button type="button" class="tb-close" onclick="tbClose('tbLoginModal')">×</button>
+    <button type="button" class="tb-close" onclick="tbBrowseAsGuest()" title="Browse without logging in" aria-label="Close">×</button>
     <h2 id="tbLoginTitle">Log in</h2>
     <input type="text" id="tbLoginName" placeholder="Username" maxlength="30" style="display:none" autocomplete="username">
     <input type="email" id="tbLoginEmail" placeholder="Email" required autocomplete="email">
@@ -349,6 +349,11 @@ function tbLoginMode(signUp){
   $("tbLoginName").required = signUp;
   $("tbLoginPw").autocomplete = signUp ? "new-password" : "current-password";
   $("tbLoginMsg").textContent = "";
+}
+// × on the login popup: close it and look around without an account
+function tbBrowseAsGuest(){
+  document.body.classList.remove("tb-gated");
+  $("tbLoginModal").classList.remove("show");
 }
 function tbOpenLogin(signUp = false){
   $("tbSidebar").classList.remove("open");
