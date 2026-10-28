@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>ThaiBeta — Climbing Route Reviews</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧗</text></svg>">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -86,7 +86,15 @@ button{border:0;border-radius:10px;padding:12px 16px;font-weight:700;cursor:poin
 .tb-vid{position:relative}
 .tb-vid-info{display:none}
 .tb-vid:fullscreen{background:#000;display:flex;align-items:center;justify-content:center}
-.tb-grid .tb-vid:fullscreen video{width:100%;height:100%;max-height:none;border-radius:0;object-fit:contain}
+.tb-vid:-webkit-full-screen{background:#000;display:flex;align-items:center;justify-content:center;width:100%;height:100%}
+.tb-vid:-webkit-full-screen video{width:100%;height:100%;max-height:none;object-fit:contain}
+.tb-vid:-webkit-full-screen .tb-vid-info{display:block;position:absolute;left:24px;bottom:80px;background:rgba(0,0,0,.6);color:#fff;padding:12px 16px;border-radius:12px;line-height:1.5}
+.tb-vid:fullscreen video{width:100%;height:100%;max-height:none;border-radius:0;object-fit:contain}
+.tb-vid video::-webkit-media-controls-fullscreen-button{display:none}
+.tb-fs{position:absolute;top:8px;right:8px;z-index:2;background:rgba(0,0,0,.55);color:#fff;padding:6px 9px;font-size:1rem;line-height:1;border-radius:8px}
+.tb-fs:hover{background:rgba(0,0,0,.8)}
+.tb-vid:fullscreen .tb-fs{top:16px;right:16px;font-size:1.3rem}
+.card .tb-vid{background:#000}
 .tb-vid:fullscreen .tb-vid-info{display:block;position:absolute;left:24px;bottom:80px;max-width:min(520px,80vw);background:rgba(0,0,0,.6);color:#fff;padding:12px 16px;border-radius:12px;line-height:1.5;font-size:1rem;pointer-events:none}
 .tb-vid-info b{font-size:1.2rem}
 .tb-msg{font-size:.85rem;margin-top:8px;min-height:1em}
@@ -107,6 +115,48 @@ button{border:0;border-radius:10px;padding:12px 16px;font-weight:700;cursor:poin
 .by-user{display:inline-flex;align-items:center;gap:6px;vertical-align:middle;background:none;border:0;padding:0;color:var(--text);font:inherit;font-weight:700;cursor:pointer}
 .by-user:hover span{color:var(--accent-2);text-decoration:underline}
 .by-user img{width:24px;height:24px;border-radius:50%;object-fit:cover;background:var(--panel-2);border:1px solid #45382f}
+/* ===================== Responsive: iPhone, Samsung, iPad, MacBook, Windows PC ===================== */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+button,.chip,.stars span,.file-drop{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+#tbSidebar{height:100dvh;width:min(260px,82vw);padding-top:calc(16px + env(safe-area-inset-top));padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+#tbToggle{top:calc(14px + env(safe-area-inset-top));left:calc(14px + env(safe-area-inset-left))}
+#tbSidebar.open + #tbToggle{left:calc(min(260px,82vw) + 14px)}
+.tb-card{max-height:90dvh}
+.filters{display:flex;flex-wrap:wrap;gap:10px}
+.filters > *{flex:1 1 150px;min-width:0}
+.filters #q{flex:3 1 260px}
+.feed{grid-template-columns:repeat(auto-fill,minmax(min(320px,100%),1fr))}
+.card video{display:block}
+.card-title h3,.review-text,.meta{overflow-wrap:anywhere}
+.card-foot{flex-wrap:wrap;gap:8px}
+/* Small laptops + iPad landscape */
+@media (max-width:1100px){main{grid-template-columns:330px 1fr;gap:18px}}
+/* iPad portrait, Galaxy Tab, phones: form above the feed */
+@media (max-width:900px){main{grid-template-columns:1fr}}
+/* Phones */
+@media (max-width:600px){
+  header{padding:22px 60px 8px}
+  header h1{font-size:1.6rem}
+  header p{font-size:.88rem}
+  main{padding:12px 12px 32px;gap:16px}
+  .panel{padding:16px}
+  .tb-modal{padding:10px}
+  .tb-card{padding:18px}
+  .tb-profile-head .tb-avatar{width:72px;height:72px}
+  .tb-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+  .filters > *{flex-basis:calc(50% - 5px)}
+  .filters #q{flex-basis:100%}
+  .tb-vid:fullscreen .tb-vid-info{left:12px;bottom:70px;font-size:.9rem}
+}
+/* Touch screens: stop iPhone/iPad/Samsung zooming in on fields, bigger tap targets */
+@media (pointer:coarse){
+  input,select,textarea{font-size:16px !important}
+  .chip{padding:8px 12px}
+  .tb-nav{padding:12px}
+}
+/* Short laptop screens (e.g. 13" MacBook, small Windows laptops) */
+@media (min-width:901px) and (max-height:760px){header{padding:16px 24px 8px}}
 </style>
 </head>
 <body>
@@ -235,7 +285,7 @@ button{border:0;border-radius:10px;padding:12px 16px;font-weight:700;cursor:poin
       📹 Click or drop a video here<br><small>MP4 / MOV / WebM · max 50 MB</small>
       <input type="file" id="video" accept="video/*" hidden />
     </div>
-    <video id="videoPreview" controls></video>
+    <video id="videoPreview" controls playsinline></video>
 
     <button type="submit" class="btn-primary" id="submitBtn">Publish review</button>
   </form>
@@ -455,7 +505,7 @@ async function render(){
   if (!list.length) { $("feed").innerHTML = `<div class="empty">No reviews yet. Send a route and post the first beta! 💪</div>`; return; }
 
   $("feed").innerHTML = list.map(r => {
-    const media = r.video ? `<video src="${esc(r.video)}" controls preload="metadata"></video>` : `<div class="no-video">No beta video uploaded</div>`;
+    const media = r.video ? tbVideoHtml(r.video, r) : `<div class="no-video">No beta video uploaded</div>`;
     const hold = r.holdColor ? `<span class="hold-dot" style="background:${esc(r.holdColor)}"></span>${esc(r.holdColorName)} holds · ` : "";
     const mine = user && r.user_id === user.id;
     return `
@@ -595,43 +645,41 @@ async function tbLoadVideos(userId){
     .order("created_at", { ascending: false });
   if (error) { box.innerHTML = `<small>${esc(error.message)}</small>`; return; }
   if (!data.length) { box.innerHTML = "<small>No beta videos yet.</small>"; return; }
-  box.innerHTML = data.map(r => {
+  box.innerHTML = data.map(r => `
+  <div>
+    ${tbVideoHtml(sb.storage.from(BUCKET).getPublicUrl(r.video_path).data.publicUrl, r)}
+    <small>${esc([r.route_name, r.grade, r.gym].filter(Boolean).join(" · "))}</small>
+  </div>`).join("");
+}
+
+// Video + beta details box. Full screen goes through our ⛶ button (Chrome's own full screen
+// button can't show anything on top of the video, so it is hidden).
+function tbVideoHtml(url, r){
   const title = [r.route_name && r.route_name !== "-" ? r.route_name : "", r.grade, r.type].filter(Boolean).join(" · ");
   const where = [r.gym, r.area, r.city].filter(Boolean).join(" · ");
   const stars = Number(r.rating) > 0 ? "★".repeat(Number(r.rating)) : "";
   const styles = Array.isArray(r.styles) ? r.styles.join(", ") : (r.styles || "");
   const extra = [r.hold_color_name ? r.hold_color_name + " holds" : "", stars, styles].filter(Boolean).join(" · ");
-  return `
-  <div>
-    <div class="tb-vid">
-      <video src="${esc(sb.storage.from(BUCKET).getPublicUrl(r.video_path).data.publicUrl)}" controls preload="metadata"></video>
-      <div class="tb-vid-info">
-        <b>${esc(title || "Beta video")}</b>
-        ${where ? `<div>${esc(where)}</div>` : ""}
-        ${extra ? `<div>${esc(extra)}</div>` : ""}
-      </div>
+  return `<div class="tb-vid">
+    <video src="${esc(url)}" controls controlslist="nofullscreen" playsinline preload="metadata"></video>
+    <button type="button" class="tb-fs" title="Full screen" aria-label="Full screen">⛶</button>
+    <div class="tb-vid-info">
+      <b>${esc(title || "Beta video")}</b>
+      ${where ? `<div>${esc(where)}</div>` : ""}
+      ${extra ? `<div>${esc(extra)}</div>` : ""}
     </div>
-    <small>${esc([r.route_name, r.grade, r.gym].filter(Boolean).join(" · "))}</small>
   </div>`;
-}).join("");
 }
-
-// Profile videos: when the player's full screen button is pressed, full screen the video
-// together with its info box instead (plain video full screen can't show anything on top)
-let tbFsBox = null;
-document.addEventListener("fullscreenchange", async () => {
-  const fe = document.fullscreenElement;
-  if (fe && fe.tagName === "VIDEO" && fe.closest(".tb-vid")) {
-    const box = fe.closest(".tb-vid");
-    if (tbFsBox === box) { // button pressed again while in full screen → leave full screen
-      tbFsBox = null;
-      while (document.fullscreenElement) await document.exitFullscreen();
-      return;
-    }
-    tbFsBox = box;
-    box.requestFullscreen().catch(() => { tbFsBox = null; }); // if refused, plain video full screen still works
-  } else if (!fe) tbFsBox = null;
-});
+function tbVidFull(box){
+  if (document.fullscreenElement || document.webkitFullscreenElement)
+    return void (document.exitFullscreen ? document.exitFullscreen() : document.webkitExitFullscreen());
+  const vid = box.querySelector("video");
+  if (box.requestFullscreen) box.requestFullscreen();
+  else if (box.webkitRequestFullscreen) box.webkitRequestFullscreen();
+  else if (vid.webkitEnterFullscreen) vid.webkitEnterFullscreen(); // iPhone: plain video full screen
+}
+document.addEventListener("click", e => { const b = e.target.closest(".tb-fs"); if (b) tbVidFull(b.closest(".tb-vid")); });
+document.addEventListener("dblclick", e => { const vid = e.target.closest(".tb-vid video"); if (vid) tbVidFull(vid.closest(".tb-vid")); });
 
 async function tbSaveUsername(){
   const name = $("tbNewName").value.trim();
