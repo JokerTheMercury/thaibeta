@@ -85,6 +85,13 @@ button{border:0;border-radius:10px;padding:12px 16px;font-weight:700;cursor:poin
 .tb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin-top:8px}
 .tb-grid video{width:100%;border-radius:10px;background:#000;max-height:260px}
 .tb-grid small,.tb-muted{color:var(--muted);font-size:.8rem}
+.tb-vid{position:relative}
+.tb-fs{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.55);color:#fff;padding:4px 8px;font-size:1rem;line-height:1;border-radius:8px}
+.tb-vid-info{display:none}
+.tb-vid:fullscreen{background:#000;display:flex;align-items:center;justify-content:center}
+.tb-grid .tb-vid:fullscreen video{width:100%;height:100%;max-height:none;border-radius:0;object-fit:contain}
+.tb-vid:fullscreen .tb-vid-info{display:block;position:absolute;left:24px;bottom:80px;max-width:min(520px,80vw);background:rgba(0,0,0,.6);color:#fff;padding:12px 16px;border-radius:12px;line-height:1.5;font-size:1rem;pointer-events:none}
+.tb-vid-info b{font-size:1.2rem}
 .tb-msg{font-size:.85rem;margin-top:8px;min-height:1em}
 .tb-msg.err{color:var(--danger)}.tb-msg.ok{color:#5ad48a}
 .by-user{display:inline-flex;align-items:center;gap:6px;vertical-align:middle;background:none;border:0;padding:0;color:var(--text);font:inherit;font-weight:700;cursor:pointer}
@@ -537,18 +544,41 @@ async function tbLoadVideos(userId){
   const box = $("tbMyVideos");
   box.innerHTML = "<small>Loading…</small>";
   const { data, error } = await sb.from("reviews")
-    .select("id, route_name, gym, grade, video_path, created_at")
+    .select("*")
     .eq("user_id", userId)
     .not("video_path", "is", null)
     .order("created_at", { ascending: false });
   if (error) { box.innerHTML = `<small>${esc(error.message)}</small>`; return; }
   if (!data.length) { box.innerHTML = "<small>No beta videos yet.</small>"; return; }
-  box.innerHTML = data.map(r => `
-    <div>
-      <video src="${esc(sb.storage.from(BUCKET).getPublicUrl(r.video_path).data.publicUrl)}" controls preload="metadata"></video>
-      <small>${esc([r.route_name, r.grade, r.gym].filter(Boolean).join(" · "))}</small>
-    </div>`).join("");
+  box.innerHTML = data.map(r => {
+  const title = [r.route_name && r.route_name !== "-" ? r.route_name : "", r.grade, r.type].filter(Boolean).join(" · ");
+  const where = [r.gym, r.area, r.city].filter(Boolean).join(" · ");
+  const stars = Number(r.rating) > 0 ? "★".repeat(Number(r.rating)) : "";
+  const styles = Array.isArray(r.styles) ? r.styles.join(", ") : (r.styles || "");
+  const extra = [r.hold_color_name ? r.hold_color_name + " holds" : "", stars, styles].filter(Boolean).join(" · ");
+  return `
+  <div>
+    <div class="tb-vid">
+      <video src="${esc(sb.storage.from(BUCKET).getPublicUrl(r.video_path).data.publicUrl)}" controls controlslist="nofullscreen" preload="metadata"></video>
+      <button type="button" class="tb-fs" title="Full screen" onclick="tbVidFull(this)">⛶</button>
+      <div class="tb-vid-info">
+        <b>${esc(title || "Beta video")}</b>
+        ${where ? `<div>${esc(where)}</div>` : ""}
+        ${extra ? `<div>${esc(extra)}</div>` : ""}
+      </div>
+    </div>
+    <small>${esc([r.route_name, r.grade, r.gym].filter(Boolean).join(" · "))}</small>
+  </div>`;
+}).join("");
 }
+
+// Full screen the video together with its info box (native video full screen can't show overlays)
+function tbVidFull(el){
+  const box = el.closest(".tb-vid");
+  if (document.fullscreenElement) return void document.exitFullscreen();
+  (box.requestFullscreen || box.webkitRequestFullscreen).call(box);
+}
+document.addEventListener("dblclick", e => { const vid = e.target.closest(".tb-vid video"); if (vid) tbVidFull(vid); });
 
 async function tbSaveUsername(){
   const name = $("tbNewName").value.trim();
