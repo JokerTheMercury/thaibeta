@@ -4,7 +4,6 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>ThaiBeta — Climbing Route Reviews</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧗</text></svg>">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>
 :root{--bg:#14110f;--panel:#1f1a17;--panel-2:#2a231f;--text:#f3ede7;--muted:#a99d93;--accent:#ff7a1a;--accent-2:#ffb26b;--danger:#e5484d;--radius:14px}
@@ -20,8 +19,6 @@ main{display:grid;grid-template-columns:380px 1fr;gap:24px;padding:20px 24px 48p
 .panel{background:var(--panel);border:1px solid #3a2f28;border-radius:var(--radius);padding:20px}
 .panel h2{margin:0 0 14px;font-size:1.2rem}
 form.panel{position:sticky;top:16px;align-self:start;max-height:calc(100vh - 32px);overflow-y:auto}
-form.panel{scrollbar-width:none}
-form.panel::-webkit-scrollbar{display:none}
 @media(max-width:900px){form.panel{position:static;max-height:none}}
 label{display:block;font-size:.85rem;color:var(--muted);margin:12px 0 6px}
 input[type=text],select,textarea{width:100%;padding:10px 12px;background:var(--panel-2);border:1px solid #45382f;border-radius:10px;color:var(--text);font-size:.95rem}
@@ -82,7 +79,7 @@ button{border:0;border-radius:10px;padding:12px 16px;font-weight:700;cursor:poin
 
     <div class="row">
       <div><label for="city">City / Province</label><select id="city" required></select></div>
-      <div><label for="gym">Gym</label><input type="text" id="gym" list="gymList" placeholder="Gym name" required /><datalist id="gymList"></datalist></div>
+      <div><label for="gym">Gym</label><select id="gym" required></select><input type="text" id="gymOther" placeholder="Type your gym name" style="display:none;margin-top:8px" /></div>
     </div>
 
     <label for="area">Where in the gym (wall / sector)</label>
@@ -142,9 +139,10 @@ button{border:0;border-radius:10px;padding:12px 16px;font-weight:700;cursor:poin
 
 <script>
 /* ---------- Supabase config (replace with your own) ---------- */
-const SUPABASE_URL = "https://obokvhahkdcbgipompxy.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_kxEo3dqrte7MT42_9EXwIw_o_Gdmp1Q";   // anon key only, never service_role
+const SUPABASE_URL = "https://YOUR-PROJECT-ID.supabase.co";
+const SUPABASE_ANON_KEY = "YOUR-ANON-PUBLIC-KEY";   // anon key only, never service_role
 const BUCKET = "videos";
+const GYMS = ["Stonegoat The Parq","Stonegoat S69","Balance Rama 9","Balance Prime","Urban Playground","Rock Domain","Climb Central","Beat Active","Boulder Planet"];
 const MAX_VIDEO_MB = 50;                            // Supabase free plan limit per file
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -189,6 +187,15 @@ let rating = 0, selectedStyles = new Set(), videoFile = null;
 $("city").innerHTML = CITIES.map(c => `<option>${c}</option>`).join("");
 $("fCity").innerHTML += CITIES.map(c => `<option>${c}</option>`).join("");
 $("fStyle").innerHTML += STYLES.map(s => `<option>${s}</option>`).join("");
+$("gym").innerHTML = `<option value="">— Select gym —</option>` + GYMS.map(g => `<option>${g}</option>`).join("") + `<option value="__other">Other (type your own)</option>`;
+function toggleGymOther(){
+  const o = $("gym").value === "__other";
+  $("gymOther").style.display = o ? "block" : "none";
+  $("gymOther").required = o;
+  if (!o) $("gymOther").value = "";
+}
+$("gym").addEventListener("change", toggleGymOther);
+
 function fillGrades(){ $("grade").innerHTML = GRADES[$("type").value].map(g => `<option>${g}</option>`).join(""); }
 $("type").addEventListener("change", fillGrades); fillGrades();
 
@@ -234,7 +241,7 @@ $("reviewForm").addEventListener("submit", async e => {
     const { error } = await sb.from("reviews").insert({
       reviewer: $("reviewer").value.trim(),
       city: $("city").value,
-      gym: $("gym").value.trim(),
+      gym: $("gym").value === "__other" ? $("gymOther").value.trim() : $("gym").value,
       area: $("area").value.trim(),
       route_name: $("routeName").value.trim(),
       type: $("type").value,
@@ -261,7 +268,7 @@ $("reviewForm").addEventListener("submit", async e => {
 function resetForm(){
   const keepName = $("reviewer").value;
   $("reviewForm").reset(); $("reviewer").value = keepName;
-  fillGrades(); rating = 0; drawStars(); selectedStyles.clear();
+  fillGrades(); toggleGymOther(); rating = 0; drawStars(); selectedStyles.clear();
   document.querySelectorAll(".chip.active").forEach(c => c.classList.remove("active"));
   videoFile = null; $("videoPreview").removeAttribute("src"); $("videoPreview").style.display = "none";
 }
@@ -282,7 +289,6 @@ async function render(){
   cache = await loadReviews();
   const all = cache;
 
-  $("gymList").innerHTML = [...new Set(all.map(r => r.gym))].sort().map(g => `<option value="${esc(g)}">`).join("");
 
   const q = $("q").value.toLowerCase().trim();
   const fCity = $("fCity").value, fType = $("fType").value, fStyle = $("fStyle").value, sort = $("sort").value;
