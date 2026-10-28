@@ -60,11 +60,92 @@ button{border:0;border-radius:10px;padding:12px 16px;font-weight:700;cursor:poin
 .review-text{white-space:pre-wrap;line-height:1.5;font-size:.93rem}
 .card-foot{display:flex;justify-content:space-between;align-items:center;margin-top:auto;padding-top:8px;border-top:1px solid #3a2f28;font-size:.8rem;color:var(--muted)}
 .empty{text-align:center;color:var(--muted);padding:60px 20px}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--accent);color:#1a0f05;padding:12px 20px;border-radius:10px;font-weight:700;opacity:0;transition:.3s;pointer-events:none;max-width:90vw}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--accent);color:#1a0f05;padding:12px 20px;border-radius:10px;font-weight:700;opacity:0;transition:.3s;pointer-events:none;max-width:90vw;z-index:2000}
 .toast.show{opacity:1}
+
+/* ===================== NEW: Sidebar + Profile + Settings ===================== */
+#tbSidebar{position:fixed;top:0;left:0;height:100vh;width:260px;background:var(--panel);border-right:1px solid #3a2f28;display:flex;flex-direction:column;gap:6px;padding:16px;z-index:1000;transform:translateX(-100%);transition:transform .25s}
+#tbSidebar.open{transform:translateX(0)}
+#tbToggle{position:fixed;top:14px;left:14px;z-index:1001;background:var(--panel);color:var(--text);border:1px solid #3a2f28;padding:8px 12px;font-size:1.1rem;transition:left .25s}
+#tbSidebar.open + #tbToggle{left:274px}
+.tb-me{display:flex;align-items:center;gap:10px;padding:8px 4px 16px;border-bottom:1px solid #3a2f28;margin:44px 0 8px}
+.tb-avatar{width:44px;height:44px;border-radius:50%;object-fit:cover;background:var(--panel-2);flex:none}
+.tb-nav{background:none;color:var(--text);text-align:left;padding:10px 12px;font-weight:600}
+.tb-nav:hover{background:var(--panel-2)}
+.tb-nav.logout{margin-top:auto;color:var(--danger)}
+.tb-modal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:1500;padding:16px}
+.tb-modal.show{display:flex}
+.tb-card{background:var(--panel);border:1px solid #3a2f28;border-radius:var(--radius);width:100%;max-width:680px;max-height:90vh;overflow:auto;padding:22px;color-scheme:dark}
+.tb-card h2{margin:0 0 14px;font-size:1.3rem}
+.tb-card h3{margin:22px 0 4px;font-size:1rem;color:var(--accent-2)}
+.tb-close{float:right;background:none;color:var(--muted);font-size:1.5rem;padding:0 6px;line-height:1}
+.tb-profile-head{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.tb-profile-head .tb-avatar{width:90px;height:90px}
+.tb-card input[type=password],.tb-card input[type=file]{width:100%;padding:10px 12px;background:var(--panel-2);border:1px solid #45382f;border-radius:10px;color:var(--text);font-size:.95rem}
+.tb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin-top:8px}
+.tb-grid video{width:100%;border-radius:10px;background:#000;max-height:260px}
+.tb-grid small,.tb-muted{color:var(--muted);font-size:.8rem}
+.tb-msg{font-size:.85rem;margin-top:8px;min-height:1em}
+.tb-msg.err{color:var(--danger)}.tb-msg.ok{color:#5ad48a}
 </style>
 </head>
 <body>
+
+<!-- ===================== NEW: Sidebar ===================== -->
+<aside id="tbSidebar">
+  <div class="tb-me">
+    <img id="tbSideAvatar" class="tb-avatar" alt="">
+    <div><div id="tbSideName" style="font-weight:700">Guest</div><span class="tb-muted">ThaiBeta</span></div>
+  </div>
+  <button class="tb-nav" onclick="tbOpen('tbProfileModal')">👤 Profile</button>
+  <button class="tb-nav" onclick="tbOpen('tbSettingsModal')">⚙️ Settings</button>
+  <button class="tb-nav logout" id="tbLogoutBtn" onclick="tbLogout()">Log out</button>
+</aside>
+<button id="tbToggle" aria-label="Menu" onclick="document.getElementById('tbSidebar').classList.toggle('open')">☰</button>
+
+<!-- Profile popup -->
+<div id="tbProfileModal" class="tb-modal" onclick="if(event.target===this)tbClose(this.id)">
+  <div class="tb-card">
+    <button class="tb-close" onclick="tbClose('tbProfileModal')">×</button>
+    <h2>Profile</h2>
+    <div class="tb-profile-head">
+      <img id="tbProfAvatar" class="tb-avatar" alt="">
+      <div style="flex:1;min-width:200px">
+        <div id="tbProfName" style="font-size:1.3rem;font-weight:800"></div>
+        <label for="tbAvatarFile">Change profile photo (max 5 MB)</label>
+        <input type="file" id="tbAvatarFile" accept="image/*">
+        <div id="tbAvatarMsg" class="tb-msg"></div>
+      </div>
+    </div>
+    <h3>My beta videos</h3>
+    <div id="tbMyVideos" class="tb-grid"><small>Loading…</small></div>
+  </div>
+</div>
+
+<!-- Settings popup -->
+<div id="tbSettingsModal" class="tb-modal" onclick="if(event.target===this)tbClose(this.id)">
+  <div class="tb-card">
+    <button class="tb-close" onclick="tbClose('tbSettingsModal')">×</button>
+    <h2>Settings</h2>
+
+    <h3>Username</h3>
+    <label for="tbNewName">New username (3–30 characters)</label>
+    <input type="text" id="tbNewName" maxlength="30">
+    <button class="btn-sm" style="margin-top:12px" onclick="tbSaveUsername()">Save username</button>
+    <div id="tbNameMsg" class="tb-msg"></div>
+
+    <h3>Password</h3>
+    <label for="tbCurPw">Current password</label>
+    <input id="tbCurPw" type="password" autocomplete="current-password">
+    <label for="tbNewPw">New password (6+ characters)</label>
+    <input id="tbNewPw" type="password" autocomplete="new-password">
+    <label for="tbNewPw2">Confirm new password</label>
+    <input id="tbNewPw2" type="password" autocomplete="new-password">
+    <button class="btn-sm" style="margin-top:12px" onclick="tbChangePassword()">Change password</button>
+    <div id="tbPwMsg" class="tb-msg"></div>
+  </div>
+</div>
+<!-- ===================== END NEW ===================== -->
 
 <header>
   <h1>🧗 Thai<span>Beta</span></h1>
@@ -180,7 +261,7 @@ $("authbar").addEventListener("click", async e => {
 });
 sb.auth.onAuthStateChange((_event, session) => {
   user = session?.user ?? null;
-  setTimeout(() => { drawAuth(); render(); }, 0);   // avoid calling Supabase inside the callback
+  setTimeout(() => { drawAuth(); render(); tbLoadProfile(); }, 0);   // avoid calling Supabase inside the callback
 });
 
 /* ---------- Form setup ---------- */
@@ -342,6 +423,113 @@ $("feed").addEventListener("click", async e => {
 });
 
 ["q","fCity","fType","fStyle","sort"].forEach(id => $(id).addEventListener(id === "q" ? "input" : "change", render));
+
+/* =====================================================================
+   NEW: Sidebar — Profile (name, photo, my videos) + Settings
+   Needs the SQL file (profiles table + avatars bucket) run in Supabase.
+   ===================================================================== */
+const AVATAR_BUCKET = "avatars";
+const DEFAULT_AVATAR = "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" fill="#2a231f"/><circle cx="20" cy="15" r="7" fill="#a99d93"/><rect x="8" y="25" width="24" height="13" rx="6" fill="#a99d93"/></svg>');
+let tbProfile = null;
+
+function tbMsg(id, text, ok){ const el = $(id); el.textContent = text; el.className = "tb-msg " + (ok ? "ok" : "err"); }
+function tbOpen(id){
+  if (!user) return toast("Please log in first (top of page)");
+  $("tbSidebar").classList.remove("open");
+  $(id).classList.add("show");
+  if (id === "tbProfileModal") tbLoadVideos();
+}
+function tbClose(id){ $(id).classList.remove("show"); }
+
+async function tbLoadProfile(){
+  $("tbLogoutBtn").style.display = user ? "" : "none";
+  if (!user){
+    tbProfile = null;
+    $("tbSideName").textContent = "Guest";
+    $("tbSideAvatar").src = DEFAULT_AVATAR;
+    return;
+  }
+  const { data, error } = await sb.from("profiles").select("*").eq("id", user.id).maybeSingle();
+  if (error) console.error(error);
+  tbProfile = data || { id: user.id, username: user.email.split("@")[0], avatar_path: null };
+
+  const name = tbProfile.username || user.email.split("@")[0];
+  const avatar = tbProfile.avatar_path
+    ? sb.storage.from(AVATAR_BUCKET).getPublicUrl(tbProfile.avatar_path).data.publicUrl + "?t=" + Date.now()
+    : DEFAULT_AVATAR;
+
+  $("tbSideName").textContent = name;
+  $("tbProfName").textContent = name;
+  $("tbNewName").value = name;
+  $("tbSideAvatar").src = avatar;
+  $("tbProfAvatar").src = avatar;
+  if (!$("reviewer").value) $("reviewer").value = name;   // pre-fill "Your name" in the review form
+}
+
+// Upload / replace profile photo → avatars/<user id>/avatar.<ext>
+$("tbAvatarFile").addEventListener("change", async e => {
+  const file = e.target.files[0]; if (!file) return;
+  if (!file.type.startsWith("image/")) return tbMsg("tbAvatarMsg", "Please choose an image", false);
+  if (file.size > 5 * 1024 * 1024) return tbMsg("tbAvatarMsg", "Photo must be under 5 MB", false);
+  tbMsg("tbAvatarMsg", "Uploading…", true);
+  const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+  const path = `${user.id}/avatar.${ext}`;
+  const up = await sb.storage.from(AVATAR_BUCKET).upload(path, file, { upsert: true, contentType: file.type });
+  if (up.error) return tbMsg("tbAvatarMsg", up.error.message, false);
+  const { error } = await sb.from("profiles").upsert({ id: user.id, avatar_path: path, updated_at: new Date().toISOString() });
+  if (error) return tbMsg("tbAvatarMsg", error.message, false);
+  e.target.value = "";
+  tbMsg("tbAvatarMsg", "Photo updated!", true);
+  tbLoadProfile();
+});
+
+// Show the videos this user uploaded with their reviews
+async function tbLoadVideos(){
+  const box = $("tbMyVideos");
+  box.innerHTML = "<small>Loading…</small>";
+  const { data, error } = await sb.from("reviews")
+    .select("id, route_name, gym, grade, video_path, created_at")
+    .eq("user_id", user.id)
+    .not("video_path", "is", null)
+    .order("created_at", { ascending: false });
+  if (error) { box.innerHTML = `<small>${esc(error.message)}</small>`; return; }
+  if (!data.length) { box.innerHTML = "<small>No videos yet — post a review with a beta video!</small>"; return; }
+  box.innerHTML = data.map(r => `
+    <div>
+      <video src="${esc(sb.storage.from(BUCKET).getPublicUrl(r.video_path).data.publicUrl)}" controls preload="metadata"></video>
+      <small>${esc([r.route_name, r.grade, r.gym].filter(Boolean).join(" · "))}</small>
+    </div>`).join("");
+}
+
+async function tbSaveUsername(){
+  const name = $("tbNewName").value.trim();
+  if (name.length < 3) return tbMsg("tbNameMsg", "Username must be at least 3 characters", false);
+  const { error } = await sb.from("profiles").upsert({ id: user.id, username: name, updated_at: new Date().toISOString() });
+  if (error) return tbMsg("tbNameMsg", error.code === "23505" ? "That username is already taken" : error.message, false);
+  tbMsg("tbNameMsg", "Username saved!", true);
+  tbLoadProfile();
+}
+
+async function tbChangePassword(){
+  const cur = $("tbCurPw").value, pw = $("tbNewPw").value, pw2 = $("tbNewPw2").value;
+  if (pw.length < 6) return tbMsg("tbPwMsg", "New password must be at least 6 characters", false);
+  if (pw !== pw2) return tbMsg("tbPwMsg", "New passwords don't match", false);
+  const check = await sb.auth.signInWithPassword({ email: user.email, password: cur });   // confirm current password
+  if (check.error) return tbMsg("tbPwMsg", "Current password is wrong", false);
+  const { error } = await sb.auth.updateUser({ password: pw });
+  if (error) return tbMsg("tbPwMsg", error.message, false);
+  ["tbCurPw", "tbNewPw", "tbNewPw2"].forEach(id => $(id).value = "");
+  tbMsg("tbPwMsg", "Password changed!", true);
+}
+
+async function tbLogout(){
+  await sb.auth.signOut();
+  $("tbSidebar").classList.remove("open");
+}
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") { tbClose("tbProfileModal"); tbClose("tbSettingsModal"); $("tbSidebar").classList.remove("open"); }
+});
 </script>
 </body>
 </html>
