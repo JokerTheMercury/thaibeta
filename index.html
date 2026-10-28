@@ -87,6 +87,9 @@ button{border:0;border-radius:10px;padding:12px 16px;font-weight:700;cursor:poin
 .tb-grid small,.tb-muted{color:var(--muted);font-size:.8rem}
 .tb-msg{font-size:.85rem;margin-top:8px;min-height:1em}
 .tb-msg.err{color:var(--danger)}.tb-msg.ok{color:#5ad48a}
+.by-user{display:inline-flex;align-items:center;gap:6px;background:none;border:0;padding:0;color:var(--text);font:inherit;font-weight:700;cursor:pointer}
+.by-user:hover span{color:var(--accent-2);text-decoration:underline}
+.by-user img{width:24px;height:24px;border-radius:50%;object-fit:cover;background:var(--panel-2);border:1px solid #45382f}
 </style>
 </head>
 <body>
@@ -112,12 +115,14 @@ button{border:0;border-radius:10px;padding:12px 16px;font-weight:700;cursor:poin
       <img id="tbProfAvatar" class="tb-avatar" alt="">
       <div style="flex:1;min-width:200px">
         <div id="tbProfName" style="font-size:1.3rem;font-weight:800"></div>
-        <label for="tbAvatarFile">Change profile photo (max 5 MB)</label>
-        <input type="file" id="tbAvatarFile" accept="image/*">
-        <div id="tbAvatarMsg" class="tb-msg"></div>
+        <div id="tbAvatarEdit">
+          <label for="tbAvatarFile">Change profile photo (max 5 MB)</label>
+          <input type="file" id="tbAvatarFile" accept="image/*">
+          <div id="tbAvatarMsg" class="tb-msg"></div>
+        </div>
       </div>
     </div>
-    <h3>My beta videos</h3>
+    <h3 id="tbVidsTitle">My beta videos</h3>
     <div id="tbMyVideos" class="tb-grid"><small>Loading…</small></div>
   </div>
 </div>
@@ -229,7 +234,7 @@ const GYMS = ["Stonegoat The Parq","Stonegoat S69","Balance Rama 9","Balance Pri
 const MAX_VIDEO_MB = 50;                            // Supabase free plan limit per file
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-let user = null, cache = [];
+let user = null, cache = [], profilesById = {};
 
 /* ---------- Config ---------- */
 const CITIES = ["Bangkok","Chiang Mai","Phuket","Krabi","Pattaya / Chonburi","Hua Hin","Khon Kaen","Nonthaburi","Other"];
@@ -360,6 +365,15 @@ function resetForm(){
 async function loadReviews(){
   const { data, error } = await sb.from("reviews").select("*").order("created_at", { ascending: false }).limit(300);
   if (error) { console.error(error); toast("Could not load reviews: " + error.message); return []; }
+
+  // Get the username + photo of everyone who posted these reviews
+  const ids = [...new Set(data.map(r => r.user_id).filter(Boolean))];
+  if (ids.length) {
+    const { data: profs, error: pErr } = await sb.from("profiles").select("id, username, avatar_path, updated_at").in("id", ids);
+    if (pErr) console.error(pErr);
+    (profs || []).forEach(p => profilesById[p.id] = p);
+  }
+
   return data.map(r => ({
     ...r,
     routeName: r.route_name, holdColor: r.hold_color, holdColorName: r.hold_color_name,
@@ -403,7 +417,7 @@ async function render(){
           ${r.styles.length ? `<div class="tags">${r.styles.map(s => `<span class="tag">${esc(s)}</span>`).join("")}</div>` : ""}
           <div class="review-text">${esc(r.text)}</div>
           <div class="card-foot">
-            <span>by ${esc(r.reviewer)} · ${new Date(r.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
+            <span>by ${byUser(r)} · ${new Date(r.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
             ${mine ? `<button class="btn-ghost" data-del="${esc(r.id)}">Delete</button>` : ""}
           </div>
         </div>
@@ -411,7 +425,18 @@ async function render(){
   }).join("");
 }
 
+// Small photo + name after "by" — click either to open that person's profile
+function byUser(r){
+  const p = profilesById[r.user_id];
+  const name = p?.username || r.reviewer;
+  if (!r.user_id) return esc(name);
+  return `<button type="button" class="by-user" data-user="${esc(r.user_id)}" title="View profile">` +
+         `<img src="${esc(avatarUrl(p))}" alt=""><span>${esc(name)}</span></button>`;
+}
+
 $("feed").addEventListener("click", async e => {
+  const who = e.target.closest("[data-user]");
+  if (who) return tbShowProfile(who.dataset.user);
   const id = e.target.dataset.del;
   if (!id || !confirm("Delete this review?")) return;
   const rv = cache.find(r => r.id === id);
@@ -436,8 +461,30 @@ function tbMsg(id, text, ok){ const el = $(id); el.textContent = text; el.classN
 function tbOpen(id){
   if (!user) return toast("Please log in first (top of page)");
   $("tbSidebar").classList.remove("open");
+  if (id === "tbProfileModal") return tbShowProfile(user.id);
   $(id).classList.add("show");
-  if (id === "tbProfileModal") tbLoadVideos();
+}
+function avatarUrl(p){
+  if (!p?.avatar_path) return DEFAULT_AVATAR;
+  return sb.storage.from(AVATAR_BUCKET).getPublicUrl(p.avatar_path).data.publicUrl + "?v=" + encodeURIComponent(p.updated_at || "");
+}
+
+// Open the Profile popup for any user (yourself or someone else)
+async function tbShowProfile(userId){
+  const isMe = user && user.id === userId;
+  let p = isMe ? tbProfile : profilesById[userId];
+  if (!p) {
+    const { data } = await sb.from("profiles").select("id, username, avatar_path, updated_at").eq("id", userId).maybeSingle();
+    p = data;
+  }
+  const name = p?.username || cache.find(r => r.user_id === userId)?.reviewer || "Climber";
+  $("tbProfName").textContent = name;
+  $("tbProfAvatar").src = avatarUrl(p);
+  $("tbAvatarEdit").style.display = isMe ? "" : "none";       // only you can change your own photo
+  $("tbAvatarMsg").textContent = "";
+  $("tbVidsTitle").textContent = isMe ? "My beta videos" : `${name}'s beta videos`;
+  $("tbProfileModal").classList.add("show");
+  tbLoadVideos(userId);
 }
 function tbClose(id){ $(id).classList.remove("show"); }
 
@@ -480,20 +527,22 @@ $("tbAvatarFile").addEventListener("change", async e => {
   if (error) return tbMsg("tbAvatarMsg", error.message, false);
   e.target.value = "";
   tbMsg("tbAvatarMsg", "Photo updated!", true);
-  tbLoadProfile();
+  await tbLoadProfile();
+  $("tbProfAvatar").src = avatarUrl(tbProfile);
+  render();   // refresh the little photos on the review cards
 });
 
 // Show the videos this user uploaded with their reviews
-async function tbLoadVideos(){
+async function tbLoadVideos(userId){
   const box = $("tbMyVideos");
   box.innerHTML = "<small>Loading…</small>";
   const { data, error } = await sb.from("reviews")
     .select("id, route_name, gym, grade, video_path, created_at")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .not("video_path", "is", null)
     .order("created_at", { ascending: false });
   if (error) { box.innerHTML = `<small>${esc(error.message)}</small>`; return; }
-  if (!data.length) { box.innerHTML = "<small>No videos yet — post a review with a beta video!</small>"; return; }
+  if (!data.length) { box.innerHTML = "<small>No beta videos yet.</small>"; return; }
   box.innerHTML = data.map(r => `
     <div>
       <video src="${esc(sb.storage.from(BUCKET).getPublicUrl(r.video_path).data.publicUrl)}" controls preload="metadata"></video>
@@ -508,6 +557,7 @@ async function tbSaveUsername(){
   if (error) return tbMsg("tbNameMsg", error.code === "23505" ? "That username is already taken" : error.message, false);
   tbMsg("tbNameMsg", "Username saved!", true);
   tbLoadProfile();
+  render();   // refresh the names on the review cards
 }
 
 async function tbChangePassword(){
