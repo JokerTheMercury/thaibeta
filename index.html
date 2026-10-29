@@ -33,6 +33,59 @@ body{margin:0;min-height:100vh;min-height:100dvh;font-family:system-ui,-apple-sy
   background:radial-gradient(circle at 20% 0%,#2b1d12 0%,var(--bg) 55%) var(--bg) no-repeat;
   padding-left:var(--safe-l);padding-right:var(--safe-r)}
 body.no-scroll{overflow:hidden}
+
+/* ===== Chat (Discord-style channels) ===== */
+#chatView{display:none}
+body.chat-mode{overflow:hidden}
+body.chat-mode > header,body.chat-mode > main{display:none}
+body.chat-mode #chatView{display:grid;grid-template-columns:240px minmax(0,1fr);height:100vh;height:100dvh}
+.ch-side{background:var(--panel);border-right:1px solid var(--line);padding:calc(66px + var(--safe-t)) 10px 16px;overflow-y:auto}
+.ch-group{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:16px 10px 6px}
+.ch-group:first-child{margin-top:0}
+.ch-item{display:flex;align-items:center;gap:6px;width:100%;text-align:left;padding:7px 10px;border-radius:8px;color:var(--muted);font-weight:600;font-size:.92rem}
+.ch-item:hover{background:var(--panel-2);color:var(--text)}
+.ch-item.active{background:var(--panel-2);color:var(--text)}
+.ch-item .hash{opacity:.55;font-weight:400}
+.ch-item.unread{color:var(--text)}
+.ch-item.unread::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent);margin-left:auto;flex:none}
+.ch-main{display:flex;flex-direction:column;min-width:0;min-height:0}
+.ch-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:calc(22px + var(--safe-t)) 20px 14px;border-bottom:1px solid var(--line)}
+.ch-head strong{font-family:var(--display);font-size:1.15rem}
+.ch-head .hash{color:var(--muted);font-weight:400;margin-right:2px}
+.ch-msgs{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:8px 20px 16px;display:flex;flex-direction:column}
+.ch-msgs > :first-child{margin-top:auto}
+.ch-msg{display:flex;gap:12px;padding:2px 8px;margin:0 -8px;border-radius:8px;position:relative}
+.ch-msg:hover{background:rgba(255,255,255,.03)}
+.ch-msg.first{margin-top:14px}
+.ch-msg img{width:38px;height:38px;border-radius:50%;object-fit:cover;flex:none;background:var(--panel-2);border:1px solid var(--line-2)}
+.ch-msg .ch-gap{width:38px;flex:none}
+.ch-body{min-width:0;flex:1}
+.ch-msg-head{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.ch-who{padding:0;font-weight:700;font-size:.95rem;color:var(--text)}
+.ch-who:hover{text-decoration:underline}
+.ch-time{font-size:.72rem;color:var(--muted)}
+.ch-text{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.45}
+.ch-del{position:absolute;right:8px;top:2px;padding:2px 8px;font-size:.72rem;font-weight:500;color:var(--muted);background:var(--panel);border:1px solid var(--line);opacity:0}
+.ch-del:hover{color:var(--danger)}
+.ch-msg:hover .ch-del,.ch-del:focus{opacity:1}
+@media (hover:none){.ch-del{opacity:.8}}
+.ch-empty{color:var(--muted);text-align:center;padding:40px 0}
+.ch-compose{padding:10px 20px calc(16px + var(--safe-b))}
+.ch-box{display:flex;gap:8px;align-items:flex-end;background:var(--panel-2);border:1px solid var(--line-2);border-radius:12px;padding:6px 6px 6px 14px}
+.ch-box:focus-within{border-color:var(--accent)}
+.ch-box textarea{min-height:0;height:40px;max-height:160px;resize:none;border:0;background:transparent;padding:9px 0;outline:none!important}
+.ch-box button{padding:9px 16px}
+.ch-guest{display:flex;justify-content:space-between;align-items:center;gap:8px;color:var(--muted);font-size:.9rem}
+@media (max-width:700px){
+  body.chat-mode #chatView{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}
+  .ch-side{display:flex;gap:6px;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding:calc(14px + var(--safe-t)) 12px 10px 64px}
+  .ch-group{display:none}
+  .ch-item{width:auto;white-space:nowrap;background:var(--panel-2);flex:none}
+  .ch-item.active{background:var(--accent);color:var(--on-accent)}
+  .ch-head{padding:12px 14px 10px}
+  .ch-msgs{padding:4px 14px 12px}
+  .ch-compose{padding:8px 12px calc(12px + var(--safe-b))}
+}
 button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:12px 16px;cursor:pointer;color:inherit;background:none}
 button:disabled{opacity:.55;cursor:wait}
 #submitBtn:disabled:not([data-label]){cursor:not-allowed}
@@ -53,9 +106,9 @@ label,.label{display:block;font-size:.85rem;color:var(--muted);margin:12px 0 6px
 header{padding:0 24px 8px}
 .brand{display:inline-flex;align-items:center;gap:8px;height:38px;margin:calc(14px + var(--safe-t)) 0 0 44px;color:var(--text);text-decoration:none;
   font-family:var(--display);font-weight:800;font-size:1.6rem;letter-spacing:-.02em;border-radius:6px}
-.brand svg{width:22px;height:22px;flex:none}
+.brand svg{width:30px;height:30px;flex:none}
 .hero{padding:clamp(28px,6vw,64px) 0 clamp(8px,2vw,16px);max-width:900px}
-.hero h1{margin:0;font-family:var(--display);font-weight:800;font-size:clamp(2.75rem,7.5vw,5.25rem);line-height:.95;letter-spacing:-.045em;text-wrap:balance}
+.hero h1{margin:0;font-family:var(--display);font-weight:800;font-size:clamp(2rem,5vw,3.5rem);line-height:.95;letter-spacing:-.045em;text-wrap:balance}
 .hero p{margin:18px 0 0;color:var(--muted);font-size:clamp(1rem,1.6vw,1.2rem);line-height:1.5;max-width:42ch}
 /* Same typeface on the other headings so the page feels like one piece */
 #reviewForm h2,.card-title h3,.grade,.tb-card h2,.tb-login h2,.tb-prof-name,.tb-side-name{font-family:var(--display);letter-spacing:-.02em}
@@ -145,6 +198,7 @@ main{display:grid;grid-template-columns:380px minmax(0,1fr);gap:24px;padding:20p
 .tb-avatar{width:44px;height:44px;border-radius:50%;object-fit:cover;background:var(--panel-2);flex:none}
 .tb-nav{text-align:left;padding:10px 12px;font-weight:600}
 .tb-nav:hover{background:var(--panel-2)}
+.tb-nav.active{background:var(--panel-2);color:var(--accent)}
 .tb-nav.login{margin-top:auto;color:var(--accent)}
 .tb-nav.logout{margin-top:auto;color:var(--danger)}
 
@@ -231,7 +285,7 @@ body.tb-gated #tbLoginModal{background:rgba(10,8,7,.7)}
   .chip{padding:8px 12px}
   .tb-nav{padding:12px}
 }
-@media (min-width:901px) and (max-height:760px){.hero{padding:24px 0 8px}.hero h1{font-size:clamp(2.5rem,5.5vw,4rem)}}
+@media (min-width:901px) and (max-height:760px){.hero{padding:24px 0 8px}.hero h1{font-size:clamp(1.9rem,4.5vw,3rem)}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -243,6 +297,8 @@ body.tb-gated #tbLoginModal{background:rgba(10,8,7,.7)}
     <img id="tbSideAvatar" class="tb-avatar" alt="">
     <div><div id="tbSideName" class="tb-side-name">Guest</div><span class="tb-muted">ThaiBeta</span></div>
   </div>
+  <button type="button" class="tb-nav active" id="navReviews" data-action="view-reviews">🧗 Reviews</button>
+  <button type="button" class="tb-nav" id="navChat" data-action="view-chat">💬 Chat</button>
   <button type="button" class="tb-nav" data-action="profile">👤 Profile</button>
   <button type="button" class="tb-nav" data-action="settings">⚙️ Settings</button>
   <button type="button" class="tb-nav login" id="tbLoginBtn" data-action="login">🔑 Log in</button>
@@ -389,6 +445,16 @@ body.tb-gated #tbLoginModal{background:rgba(10,8,7,.7)}
     <div class="feed" id="feed"></div>
   </section>
 </main>
+
+<!-- ===================== Chat ===================== -->
+<section id="chatView" aria-label="Chat">
+  <nav class="ch-side" id="chList" aria-label="Channels"></nav>
+  <div class="ch-main">
+    <div class="ch-head"><strong><span class="hash">#</span><span id="chName">general</span></strong><span id="chDesc" class="tb-muted"></span></div>
+    <div class="ch-msgs" id="chMsgs" aria-live="polite"></div>
+    <div class="ch-compose" id="chCompose"></div>
+  </div>
+</section>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -592,6 +658,7 @@ async function onUserChanged(){
   }
   refreshMeUI();
   draw();
+  if (inChat()){ renderCompose(); renderMessages(); }
   if (user) await loadMyProfile();
 }
 
@@ -1096,6 +1163,189 @@ $("tbPwForm").addEventListener("submit", async e => {
 });
 
 /* =====================================================================
+   Chat: Discord-style channels with live messages
+   ===================================================================== */
+const slugify = s => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const TOPIC_CHANNELS = [
+  ["general", "Anything climbing"],
+  ["beta-help", "Stuck on a route? Ask for beta here"],
+  ["find-partners", "Find people to climb with"],
+  ["gear", "Shoes, chalk and gear talk"],
+  ["outdoor", "Outdoor trips and crags"]
+];
+const GYM_CHANNELS = GYMS.map(g => [slugify(g), `Talk about ${g}`]);
+const ALL_CHANNELS = [...TOPIC_CHANNELS, ...GYM_CHANNELS];
+
+let chCurrent = "general", chMsgsList = [], chSub = null, chLoaded = false;
+const chUnread = new Set();
+try { const saved = localStorage.getItem("tb-chat-channel"); if (ALL_CHANNELS.some(c => c[0] === saved)) chCurrent = saved; } catch {}
+
+const inChat = () => document.body.classList.contains("chat-mode");
+
+function setView(chat){
+  document.body.classList.toggle("chat-mode", chat);
+  $("navReviews").classList.toggle("active", !chat);
+  $("navChat").classList.toggle("active", chat);
+  closeSidebar();
+  if (!chat) return;
+  renderChannels();
+  renderCompose();
+  startRealtime();
+  if (!chLoaded) openChannel(chCurrent);
+}
+
+function renderChannels(){
+  const item = ([slug]) => `<button type="button" class="ch-item${slug === chCurrent ? " active" : ""}${chUnread.has(slug) ? " unread" : ""}" data-ch="${slug}"><span class="hash">#</span>${slug}</button>`;
+  $("chList").innerHTML =
+    `<div class="ch-group">Topics</div>${TOPIC_CHANNELS.map(item).join("")}` +
+    `<div class="ch-group">Gyms</div>${GYM_CHANNELS.map(item).join("")}`;
+  $("chList").querySelector(".ch-item.active")?.scrollIntoView({ block: "nearest", inline: "nearest" });
+}
+
+async function openChannel(slug){
+  chCurrent = slug; chLoaded = true; chMsgsList = [];
+  chUnread.delete(slug);
+  try { localStorage.setItem("tb-chat-channel", slug); } catch {}
+  const info = ALL_CHANNELS.find(c => c[0] === slug);
+  $("chName").textContent = slug;
+  $("chDesc").textContent = info ? info[1] : "";
+  if ($("chText")) $("chText").placeholder = `Message #${slug}`;
+  $("chMsgs").innerHTML = `<div class="ch-empty">Loading…</div>`;
+  renderChannels();
+  const { data, error } = await sb.from("messages")
+    .select("id, channel, user_id, body, created_at")
+    .eq("channel", slug).order("created_at", { ascending: false }).limit(150);
+  if (slug !== chCurrent) return;
+  if (error){
+    console.error(error);
+    $("chMsgs").innerHTML = `<div class="ch-empty">Couldn't load messages. ${esc(friendly(error))}</div>`;
+    return;
+  }
+  await loadProfiles(data.map(m => m.user_id));
+  if (slug !== chCurrent) return;
+  chMsgsList = data.reverse();
+  renderMessages(true);
+  if (!isMobile.matches) $("chText")?.focus({ preventScroll: true });
+}
+
+async function loadProfiles(ids){
+  const need = [...new Set(ids.filter(Boolean))].filter(id => !profilesById[id]);
+  for (let i = 0; i < need.length; i += 100){
+    const { data, error } = await sb.from("profiles").select(PROFILE_COLS).in("id", need.slice(i, i + 100));
+    if (error) console.error(error);
+    (data || []).forEach(p => profilesById[p.id] = p);
+  }
+}
+
+function chTime(iso){
+  const d = new Date(iso), now = new Date();
+  const t = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  if (d.toDateString() === now.toDateString()) return "Today " + t;
+  const y = new Date(now); y.setDate(now.getDate() - 1);
+  if (d.toDateString() === y.toDateString()) return "Yesterday " + t;
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: d.getFullYear() === now.getFullYear() ? undefined : "numeric" }) + " " + t;
+}
+
+function renderMessages(toBottom){
+  const box = $("chMsgs");
+  const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 120;
+  if (!chMsgsList.length){
+    box.innerHTML = `<div class="ch-empty">This is the start of #${esc(chCurrent)}. Say hi! 👋</div>`;
+    return;
+  }
+  let prev = null;
+  box.innerHTML = chMsgsList.map(m => {
+    // Messages from the same person within 5 minutes are grouped, like Discord
+    const first = !prev || prev.user_id !== m.user_id || Date.parse(m.created_at) - Date.parse(prev.created_at) > 5 * 60000;
+    prev = m;
+    const p = profilesById[m.user_id];
+    const mine = user && m.user_id === user.id;
+    return `<div class="ch-msg${first ? " first" : ""}">
+      ${first ? `<img src="${esc(avatarUrl(p))}" alt="" loading="lazy">` : `<span class="ch-gap"></span>`}
+      <div class="ch-body">
+        ${first ? `<div class="ch-msg-head"><button type="button" class="ch-who" data-user="${esc(m.user_id)}">${esc(p?.username || "Climber")}</button><span class="ch-time">${esc(chTime(m.created_at))}</span></div>` : ""}
+        <div class="ch-text">${esc(m.body)}</div>
+      </div>
+      ${mine ? `<button type="button" class="ch-del" data-mdel="${esc(m.id)}">Delete</button>` : ""}
+    </div>`;
+  }).join("");
+  if (toBottom || nearBottom) box.scrollTop = box.scrollHeight;
+}
+
+function renderCompose(){
+  $("chCompose").innerHTML = user
+    ? `<div class="ch-box"><textarea id="chText" rows="1" maxlength="2000" placeholder="Message #${esc(chCurrent)}"></textarea>
+       <button type="button" class="btn-sm" id="chSend" data-action="send-chat">Send</button></div>`
+    : `<div class="ch-guest"><span>Log in to join the chat.</span><button type="button" class="btn-sm" data-action="login">Log in</button></div>`;
+}
+
+async function sendChat(){
+  if (!user) return openLogin();
+  const box = $("chText"), btn = $("chSend");
+  const body = box.value.trim();
+  if (!body || "label" in btn.dataset) return;
+  const channel = chCurrent;
+  busy(btn, "…");
+  const { data, error } = await sb.from("messages")
+    .insert({ channel, user_id: user.id, body })
+    .select("id, channel, user_id, body, created_at").single();
+  busy(btn);
+  if (error) return toast("Couldn't send: " + friendly(error), "err");
+  if (myProfile) profilesById[user.id] = myProfile;
+  box.value = ""; box.style.height = "";
+  box.focus();
+  if (channel === chCurrent && !chMsgsList.some(m => m.id === data.id)){
+    chMsgsList.push(data);
+    renderMessages(true);
+  }
+}
+
+async function deleteMessage(btn){
+  if (!confirm("Delete this message?")) return;
+  const id = btn.dataset.mdel;
+  const { data, error } = await sb.from("messages").delete().eq("id", id).select("id");
+  if (error || !data?.length) return toast("Couldn't delete: " + (error ? friendly(error) : "this message isn't yours or is already gone."), "err");
+  chMsgsList = chMsgsList.filter(m => String(m.id) !== String(id));
+  renderMessages();
+}
+
+// Live updates: new and deleted messages appear without refreshing
+function startRealtime(){
+  if (chSub) return;
+  chSub = sb.channel("tb-chat")
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, async ({ new: m }) => {
+      if (m.channel !== chCurrent){ chUnread.add(m.channel); if (inChat()) renderChannels(); return; }
+      if (chMsgsList.some(x => x.id === m.id)) return;
+      await loadProfiles([m.user_id]);
+      if (m.channel !== chCurrent || chMsgsList.some(x => x.id === m.id)) return;
+      chMsgsList.push(m);
+      renderMessages();
+    })
+    .on("postgres_changes", { event: "DELETE", schema: "public", table: "messages" }, ({ old }) => {
+      if (!chMsgsList.some(m => m.id === old.id)) return;
+      chMsgsList = chMsgsList.filter(m => m.id !== old.id);
+      renderMessages();
+    })
+    .subscribe();
+}
+
+// Enter sends, Shift+Enter makes a new line; the box grows as you type
+document.addEventListener("keydown", e => {
+  if (e.target.id === "chText" && e.key === "Enter" && !e.shiftKey && !e.isComposing){ e.preventDefault(); sendChat(); }
+});
+document.addEventListener("input", e => {
+  if (e.target.id !== "chText") return;
+  e.target.style.height = "";
+  e.target.style.height = Math.min(e.target.scrollHeight, 160) + "px";
+});
+
+// #chat in the address bar opens the chat, so the back button works
+window.addEventListener("hashchange", () => setView(location.hash === "#chat"));
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && inChat()) openChannel(chCurrent);
+});
+
+/* =====================================================================
    One click handler for every button on the page
    ===================================================================== */
 document.addEventListener("click", e => {
@@ -1117,11 +1367,16 @@ document.addEventListener("click", e => {
       case "retry":          return fetchReviews();
       case "clear-filters":  return clearFilters();
       case "remove-video":   return clearVideo();
+      case "view-chat":      if (location.hash === "#chat") return setView(true); location.hash = "chat"; return;
+      case "view-reviews":   if (location.hash) history.pushState(null, "", location.pathname + location.search); return setView(false);
+      case "send-chat":      return sendChat();
       case "toggle-form":    if (isMobile.matches) setFormOpen($("reviewForm").classList.contains("collapsed")); return;
     }
   }
   const who = e.target.closest("[data-user]"); if (who) return showProfile(who.dataset.user);
   const del = e.target.closest("[data-del]");  if (del) return deleteReview(del);
+  const ch  = e.target.closest("[data-ch]");   if (ch)  return openChannel(ch.dataset.ch);
+  const md  = e.target.closest("[data-mdel]"); if (md)  return deleteMessage(md);
   const fs  = e.target.closest(".tb-fs");      if (fs)  return tbVidFull(fs.closest(".tb-vid"));
 });
 
@@ -1145,6 +1400,7 @@ document.addEventListener("visibilitychange", () => {
 /* ---------- Start ---------- */
 refreshMeUI();
 fetchReviews();
+if (location.hash === "#chat") setView(true);
 </script>
 </body>
 </html>
