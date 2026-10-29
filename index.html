@@ -2,153 +2,208 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#14110f" />
+<meta name="description" content="Review climbing routes and share beta videos from gyms across Thailand." />
 <title>ThaiBeta — Climbing Route Reviews</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧗</text></svg>">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>
-:root{--bg:#14110f;--panel:#1f1a17;--panel-2:#2a231f;--text:#f3ede7;--muted:#a99d93;--accent:#ff7a1a;--accent-2:#ffb26b;--danger:#e5484d;--radius:14px}
+/* ===================== Tokens ===================== */
+:root{
+  --bg:#14110f;--panel:#1f1a17;--panel-2:#2a231f;--sunk:#18130f;
+  --line:#3a2f28;--line-2:#45382f;--line-3:#5a4a3f;
+  --text:#f3ede7;--muted:#a99d93;--faint:#4a3d34;
+  --accent:#ff7a1a;--accent-2:#ffb26b;--on-accent:#1a0f05;--tag-bg:#3a2a1d;
+  --danger:#e5484d;--ok:#5ad48a;
+  --radius:14px;--side-w:min(260px,82vw);
+  --safe-t:env(safe-area-inset-top,0px);--safe-b:env(safe-area-inset-bottom,0px);
+  --safe-l:env(safe-area-inset-left,0px);--safe-r:env(safe-area-inset-right,0px);
+}
+
+/* ===================== Base ===================== */
 *{box-sizing:border-box}
-body{margin:0;font-family:system-ui,-apple-system,"Segoe UI","Noto Sans Thai",sans-serif;background:radial-gradient(circle at 20% 0%,#2b1d12 0%,var(--bg) 55%);color:var(--text);min-height:100vh}
-header{padding:28px 24px 12px;text-align:center}
-header h1{margin:0;font-size:2rem}header h1 span{color:var(--accent)}
-header p{margin:6px 0 0;color:var(--muted)}
-main{display:grid;grid-template-columns:380px 1fr;gap:24px;padding:20px 24px 48px;margin:0}
-@media(max-width:900px){main{grid-template-columns:1fr}}
-.panel{background:var(--panel);border:1px solid #3a2f28;border-radius:var(--radius);padding:20px}
-.panel h2{margin:0 0 14px;font-size:1.2rem}
-form.panel{position:sticky;top:16px;align-self:start;max-height:calc(100vh - 32px);overflow-y:auto}
-@media(max-width:900px){form.panel{position:static;max-height:none}}
-form.panel{color-scheme:dark}
-label{display:block;font-size:.85rem;color:var(--muted);margin:12px 0 6px}
-input[type=text],select,textarea{width:100%;padding:10px 12px;background:var(--panel-2);border:1px solid #45382f;border-radius:10px;color:var(--text);font-size:.95rem}
+[hidden]{display:none!important}
+html{color-scheme:dark;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;min-height:100vh;min-height:100dvh;font-family:system-ui,-apple-system,"Segoe UI","Noto Sans Thai",sans-serif;color:var(--text);
+  background:radial-gradient(circle at 20% 0%,#2b1d12 0%,var(--bg) 55%) var(--bg) no-repeat;
+  padding-left:var(--safe-l);padding-right:var(--safe-r)}
+body.no-scroll{overflow:hidden}
+button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:12px 16px;cursor:pointer;color:inherit;background:none}
+button:disabled{opacity:.55;cursor:wait}
+button,.chip,.file-drop{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input[type=text],input[type=email],input[type=password],input[type=search],select,textarea{
+  width:100%;padding:10px 12px;background:var(--panel-2);border:1px solid var(--line-2);border-radius:10px;color:var(--text);font:inherit;font-size:.95rem}
+input[type=search]{-webkit-appearance:none;appearance:none}
+input::placeholder,textarea::placeholder{color:var(--muted);opacity:.85}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:0;border-color:transparent}
 textarea{min-height:100px;resize:vertical}
-input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);border-color:transparent}
+label,.label{display:block;font-size:.85rem;color:var(--muted);margin:12px 0 6px}
+.tb-muted{color:var(--muted);font-size:.8rem}
+.btn-link{background:none;padding:2px 4px;color:var(--accent-2);font-weight:600;font-size:.85rem;text-decoration:underline;text-underline-offset:2px}
+.btn-link:hover{color:var(--text)}
+
+/* ===================== Layout ===================== */
+header{padding:calc(28px + var(--safe-t)) 24px 12px;text-align:center}
+header h1{margin:0;font-size:2rem}
+header h1 span{color:var(--accent)}
+header p{margin:6px 0 0;color:var(--muted)}
+main{display:grid;grid-template-columns:380px minmax(0,1fr);gap:24px;padding:20px 24px calc(48px + var(--safe-b))}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
+
+/* ===================== Review form ===================== */
+#reviewForm{position:sticky;top:16px;align-self:start;max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);overflow-y:auto;overscroll-behavior:contain}
+#reviewForm h2{margin:0 0 6px;font-size:1.2rem}
+.form-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;padding:0;text-align:left;font-size:inherit;cursor:default;border-radius:6px}
+.chev{display:none}
+.posting-as{margin:0;color:var(--muted);font-size:.85rem}
+.posting-as b{color:var(--text)}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{padding:6px 10px;border-radius:999px;background:var(--panel-2);border:1px solid #45382f;font-size:.8rem;cursor:pointer;user-select:none}
-.chip.active{background:var(--accent);border-color:var(--accent);color:#1a0f05;font-weight:600}
-.stars{display:flex;gap:4px;font-size:1.6rem;cursor:pointer}
-.stars span{color:#4a3d34}.stars span.on{color:var(--accent-2)}
-.file-drop{border:2px dashed #5a4a3f;border-radius:12px;padding:16px;text-align:center;color:var(--muted);cursor:pointer}
-.file-drop:hover{border-color:var(--accent)}
-#videoPreview{width:100%;margin-top:10px;border-radius:10px;display:none}
-button{border:0;border-radius:10px;padding:12px 16px;font-weight:700;cursor:pointer;font-size:.95rem}
-.btn-primary{width:100%;margin-top:18px;background:var(--accent);color:#1a0f05}
-.btn-primary:hover,.btn-sm:hover{background:var(--accent-2)}
-.btn-primary:disabled{opacity:.5;cursor:wait}
-.btn-sm{background:var(--accent);color:#1a0f05;padding:8px 14px}
-.btn-sm.alt{background:var(--panel-2);color:var(--text);border:1px solid #45382f}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:var(--panel-2);border:1px solid var(--line-2);font-size:.8rem;font-weight:500}
+.chip:hover{border-color:var(--line-3)}
+.chip[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:700}
+.chip .dot{width:10px;height:10px;border-radius:50%;border:1px solid #fff6;flex:none}
+.rating-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.stars{display:flex;gap:2px}
+.stars button{padding:2px 3px;font-size:1.7rem;line-height:1;font-weight:400;color:var(--faint);border-radius:6px}
+.stars button.on{color:var(--accent-2)}
+@media (hover:hover){
+  .stars:hover button{color:var(--accent-2)}
+  .stars button:hover~button{color:var(--faint)}
+}
+.file-drop{display:block;width:100%;border:2px dashed var(--line-3);border-radius:12px;padding:16px;text-align:center;color:var(--muted);font-weight:400}
+.file-drop:hover,.file-drop.drag{border-color:var(--accent);color:var(--text)}
+.file-drop.drag{background:rgba(255,122,26,.06)}
+.picked{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px;font-size:.85rem;color:var(--muted);overflow-wrap:anywhere}
+#videoPreview{width:100%;max-height:320px;margin-top:8px;border-radius:10px;background:#000;display:block}
+.btn-primary{width:100%;margin-top:18px;background:var(--accent);color:var(--on-accent)}
+.btn-primary:hover:not(:disabled),.btn-sm:hover:not(:disabled){background:var(--accent-2)}
+.btn-sm{background:var(--accent);color:var(--on-accent);padding:8px 14px}
 .btn-ghost{background:transparent;color:var(--danger);border:1px solid #5a2a2c;padding:6px 10px;font-size:.8rem}
-.filters{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:10px;margin-bottom:18px}
-@media(max-width:700px){.filters{grid-template-columns:1fr 1fr}}
-.stats{color:var(--muted);font-size:.85rem;margin-bottom:12px}
-.feed{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px}
-.card{background:var(--panel);border:1px solid #3a2f28;border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column}
-.card video{width:100%;max-height:340px;background:#000}
-.no-video{padding:30px;text-align:center;color:var(--muted);background:#18130f;font-size:.85rem}
+.btn-ghost:hover:not(:disabled){background:#2a1415}
+
+/* ===================== Feed ===================== */
+.filters{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.filters > *{flex:1 1 140px;min-width:0}
+.filters #q{flex:3 1 260px}
+.stats{color:var(--muted);font-size:.85rem;margin-bottom:12px;min-height:1.4em}
+.feed{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(320px,100%),1fr));gap:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column}
+.card .tb-vid{background:#000}
+.card .tb-vid video{display:block;width:100%;height:300px;object-fit:contain;background:#000}
+.no-video{padding:30px;text-align:center;color:var(--muted);background:var(--sunk);font-size:.85rem}
 .card-body{padding:16px;display:flex;flex-direction:column;gap:8px;flex:1}
 .card-title{display:flex;justify-content:space-between;align-items:start;gap:8px}
 .card-title h3{margin:0;font-size:1.1rem}
-.grade{background:var(--accent);color:#1a0f05;font-weight:800;padding:4px 10px;border-radius:8px;white-space:nowrap}
+.grade{background:var(--accent);color:var(--on-accent);font-weight:800;padding:4px 10px;border-radius:8px;white-space:nowrap}
 .meta{color:var(--muted);font-size:.85rem;line-height:1.5}
 .hold-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:middle;border:1px solid #fff5}
+.rating{color:var(--accent-2);letter-spacing:1px}
+.rating span{color:var(--faint)}
 .tags{display:flex;flex-wrap:wrap;gap:5px}
-.tag{background:#3a2a1d;color:var(--accent-2);font-size:.75rem;padding:3px 8px;border-radius:999px}
+.tag{background:var(--tag-bg);color:var(--accent-2);font-size:.75rem;padding:3px 8px;border-radius:999px}
 .review-text{white-space:pre-wrap;line-height:1.5;font-size:.93rem}
-.card-foot{display:flex;justify-content:space-between;align-items:center;margin-top:auto;padding-top:8px;border-top:1px solid #3a2f28;font-size:.8rem;color:var(--muted)}
-.empty{text-align:center;color:var(--muted);padding:60px 20px}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--accent);color:#1a0f05;padding:12px 20px;border-radius:10px;font-weight:700;opacity:0;transition:.3s;pointer-events:none;max-width:90vw;z-index:2000}
-.toast.show{opacity:1}
+.card-title h3,.review-text,.meta{overflow-wrap:anywhere}
+.card-foot{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;margin-top:auto;padding-top:8px;border-top:1px solid var(--line);font-size:.8rem;color:var(--muted)}
+.by-user{display:inline-flex;align-items:center;gap:6px;vertical-align:middle;padding:0;color:var(--text);border-radius:999px}
+.by-user:hover span{color:var(--accent-2);text-decoration:underline}
+.by-user img{width:24px;height:24px;border-radius:50%;object-fit:cover;background:var(--panel-2);border:1px solid var(--line-2)}
+.empty{grid-column:1/-1;text-align:center;color:var(--muted);padding:60px 20px}
+.empty p{margin:0 0 14px}
+.skel{height:420px;border-radius:var(--radius);border:1px solid var(--line);background:var(--panel);position:relative;overflow:hidden}
+.skel::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.035),transparent);transform:translateX(-100%);animation:shimmer 1.4s infinite}
+@keyframes shimmer{to{transform:translateX(100%)}}
 
-/* ===================== NEW: Sidebar + Profile + Settings ===================== */
-#tbSidebar{position:fixed;top:0;left:0;height:100vh;width:260px;background:var(--panel);border-right:1px solid #3a2f28;display:flex;flex-direction:column;gap:6px;padding:16px;z-index:1000;transform:translateX(-100%);transition:transform .25s}
-#tbSidebar.open{transform:translateX(0)}
-#tbToggle{position:fixed;top:14px;left:14px;z-index:1001;background:var(--panel);color:var(--text);border:1px solid #3a2f28;padding:8px 12px;font-size:1.1rem;transition:left .25s}
-#tbSidebar.open + #tbToggle{left:274px}
-.tb-me{display:flex;align-items:center;gap:10px;padding:8px 4px 16px;border-bottom:1px solid #3a2f28;margin:44px 0 8px}
+/* ===================== Toast ===================== */
+.toast{position:fixed;bottom:calc(24px + var(--safe-b));left:50%;transform:translate(-50%,8px);background:var(--accent);color:var(--on-accent);padding:12px 20px;border-radius:10px;font-weight:700;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;max-width:90vw;z-index:2000;text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast.err{background:var(--danger);color:#fff}
+
+/* ===================== Sidebar ===================== */
+#tbSidebar{position:fixed;top:0;left:0;height:100vh;height:100dvh;width:var(--side-w);background:var(--panel);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;gap:6px;padding:calc(16px + var(--safe-t)) 16px calc(16px + var(--safe-b)) calc(16px + var(--safe-l));
+  z-index:1000;transform:translateX(-100%);visibility:hidden;transition:transform .25s ease,visibility .25s}
+#tbSidebar.open{transform:none;visibility:visible}
+#tbToggle{position:fixed;top:calc(14px + var(--safe-t));left:calc(14px + var(--safe-l));z-index:1001;background:var(--panel);border:1px solid var(--line);padding:8px 12px;font-size:1.1rem;line-height:1;transition:left .25s ease}
+#tbSidebar.open~#tbToggle{left:calc(var(--side-w) + 14px)}
+#tbScrim{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;opacity:0;pointer-events:none;transition:opacity .25s}
+#tbSidebar.open~#tbScrim{opacity:1;pointer-events:auto}
+.tb-me{display:flex;align-items:center;gap:10px;padding:8px 4px 16px;border-bottom:1px solid var(--line);margin:44px 0 8px}
+.tb-side-name{font-weight:700;overflow-wrap:anywhere}
 .tb-avatar{width:44px;height:44px;border-radius:50%;object-fit:cover;background:var(--panel-2);flex:none}
-.tb-nav{background:none;color:var(--text);text-align:left;padding:10px 12px;font-weight:600}
+.tb-nav{text-align:left;padding:10px 12px;font-weight:600}
 .tb-nav:hover{background:var(--panel-2)}
+.tb-nav.login{margin-top:auto;color:var(--accent)}
 .tb-nav.logout{margin-top:auto;color:var(--danger)}
+
+/* ===================== Modals ===================== */
 .tb-modal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:1500;padding:16px}
 .tb-modal.show{display:flex}
-.tb-card{background:var(--panel);border:1px solid #3a2f28;border-radius:var(--radius);width:100%;max-width:680px;max-height:90vh;overflow:auto;padding:22px;color-scheme:dark}
+.tb-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);width:100%;max-width:680px;max-height:90vh;max-height:90dvh;overflow:auto;overscroll-behavior:contain;padding:22px}
+.tb-card:focus,.tb-login:focus{outline:none}
 .tb-card h2{margin:0 0 14px;font-size:1.3rem}
 .tb-card h3{margin:22px 0 4px;font-size:1rem;color:var(--accent-2)}
-.tb-close{float:right;background:none;color:var(--muted);font-size:1.5rem;padding:0 6px;line-height:1}
+.tb-close{float:right;color:var(--muted);font-size:1.5rem;padding:0 8px;line-height:1.2;font-weight:400}
+.tb-close:hover{color:var(--text)}
 .tb-profile-head{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
 .tb-profile-head .tb-avatar{width:90px;height:90px}
-.tb-card input[type=password],.tb-card input[type=file]{width:100%;padding:10px 12px;background:var(--panel-2);border:1px solid #45382f;border-radius:10px;color:var(--text);font-size:.95rem}
+.tb-prof-name{font-size:1.3rem;font-weight:800;overflow-wrap:anywhere}
+.tb-card input[type=file]{width:100%;padding:10px 12px;background:var(--panel-2);border:1px solid var(--line-2);border-radius:10px;color:var(--text);font-size:.95rem}
 .tb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin-top:8px}
-.tb-grid video{width:100%;border-radius:10px;background:#000;max-height:260px}
-.tb-grid small,.tb-muted{color:var(--muted);font-size:.8rem}
+.tb-grid .tb-vid video{display:block;width:100%;height:240px;object-fit:contain;border-radius:10px;background:#000}
+.tb-grid small{color:var(--muted);font-size:.8rem;display:block;margin-top:4px}
+.tb-msg{font-size:.85rem;margin-top:8px;min-height:1em}
+.tb-msg.err{color:var(--danger)}
+.tb-msg.ok{color:var(--ok)}
+
+/* Video + full screen */
 .tb-vid{position:relative}
 .tb-vid-info{display:none}
-.tb-vid:fullscreen{background:#000;display:flex;align-items:center;justify-content:center}
-.tb-vid:-webkit-full-screen{background:#000;display:flex;align-items:center;justify-content:center;width:100%;height:100%}
-.tb-vid:-webkit-full-screen video{width:100%;height:100%;max-height:none;object-fit:contain}
-.tb-vid:-webkit-full-screen .tb-vid-info{display:block;position:absolute;left:24px;bottom:80px;background:rgba(0,0,0,.6);color:#fff;padding:12px 16px;border-radius:12px;line-height:1.5}
-.tb-vid:fullscreen video{width:100%;height:100%;max-height:none;border-radius:0;object-fit:contain}
 .tb-vid video::-webkit-media-controls-fullscreen-button{display:none}
 .tb-fs{position:absolute;top:8px;right:8px;z-index:2;background:rgba(0,0,0,.55);color:#fff;padding:6px 9px;font-size:1rem;line-height:1;border-radius:8px}
 .tb-fs:hover{background:rgba(0,0,0,.8)}
+.tb-vid:fullscreen{background:#000;display:flex;align-items:center;justify-content:center}
+.tb-vid:-webkit-full-screen{background:#000;display:flex;align-items:center;justify-content:center;width:100%;height:100%}
+.tb-vid:fullscreen video,.tb-vid:-webkit-full-screen video{width:100%;height:100%;max-height:none;border-radius:0;object-fit:contain}
 .tb-vid:fullscreen .tb-fs{top:16px;right:16px;font-size:1.3rem}
-.card .tb-vid{background:#000}
-.tb-vid:fullscreen .tb-vid-info{display:block;position:absolute;left:24px;bottom:80px;max-width:min(520px,80vw);background:rgba(0,0,0,.6);color:#fff;padding:12px 16px;border-radius:12px;line-height:1.5;font-size:1rem;pointer-events:none}
+.tb-vid:fullscreen .tb-vid-info,.tb-vid:-webkit-full-screen .tb-vid-info{display:block;position:absolute;left:24px;bottom:80px;max-width:min(520px,80vw);background:rgba(0,0,0,.6);color:#fff;padding:12px 16px;border-radius:12px;line-height:1.5;font-size:1rem;pointer-events:none}
 .tb-vid-info b{font-size:1.2rem}
-.tb-msg{font-size:.85rem;margin-top:8px;min-height:1em}
-.tb-msg.err{color:var(--danger)}.tb-msg.ok{color:#5ad48a}
-.tb-nav.login{margin-top:auto;color:var(--accent)}
-.tb-login{background:var(--panel);color:var(--text);border:1px solid #3a2f28;border-radius:var(--radius);width:100%;max-width:300px;padding:40px 22px 14px;box-shadow:0 10px 40px rgba(0,0,0,.6);position:relative;color-scheme:dark}
-.tb-login h2{margin:0 0 16px;font-size:1.9rem;font-weight:800;color:var(--text)}
-.tb-login input{width:100%;padding:10px 12px;margin-bottom:12px;background:var(--panel-2);border:1px solid #45382f;border-radius:10px;color:var(--text);font-size:.9rem}
-.tb-login input::placeholder{color:var(--muted)}
-.tb-login input:focus{outline:2px solid var(--accent);border-color:transparent}
-.tb-login-btn{width:100%;background:var(--accent);color:#1a0f05;border-radius:10px;padding:11px;font-weight:700;margin-top:4px}
-.tb-login-btn:hover{background:var(--accent-2)}
-.tb-login-btn:disabled{opacity:.6;cursor:wait}
-.tb-login-switch{display:block;margin:10px auto 0;background:none;color:var(--muted);padding:4px 8px;font-weight:400;font-size:.85rem;border-radius:8px}
+
+/* Log in / sign up */
+.tb-login{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);width:100%;max-width:320px;padding:40px 22px 14px;box-shadow:0 10px 40px rgba(0,0,0,.6);position:relative}
+.tb-login h2{margin:0 0 16px;font-size:1.9rem;font-weight:800}
+.tb-login input{margin-bottom:12px;font-size:.9rem}
+.tb-login-btn{width:100%;background:var(--accent);color:var(--on-accent);padding:11px;margin-top:4px}
+.tb-login-btn:hover:not(:disabled){background:var(--accent-2)}
+.tb-login-switch{display:block;margin:10px auto 0;color:var(--muted);padding:4px 8px;font-weight:400;font-size:.85rem;border-radius:8px}
 .tb-login-switch:hover{color:var(--accent-2);text-decoration:underline}
-.tb-login-switch:focus{outline:none}.tb-login-switch:focus-visible{outline:2px solid var(--accent)}
-.tb-login .tb-close{position:absolute;top:8px;left:10px;right:auto;color:var(--muted)}
-.tb-login .tb-close:hover{color:var(--text)}
+.tb-login .tb-close{position:absolute;top:8px;left:10px;float:none}
+
+/* Logged-out gate: blur the site behind the log in box */
 body.tb-gated > :not(#tbLoginModal):not(.toast):not(script){filter:blur(6px);pointer-events:none;user-select:none}
 body.tb-gated #tbLoginModal{background:rgba(10,8,7,.7)}
-.by-user{display:inline-flex;align-items:center;gap:6px;vertical-align:middle;background:none;border:0;padding:0;color:var(--text);font:inherit;font-weight:700;cursor:pointer}
-.by-user:hover span{color:var(--accent-2);text-decoration:underline}
-.by-user img{width:24px;height:24px;border-radius:50%;object-fit:cover;background:var(--panel-2);border:1px solid #45382f}
-/* ===================== Responsive: iPhone, Samsung, iPad, MacBook, Windows PC ===================== */
-html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
-body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
-button,.chip,.stars span,.file-drop{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
-#tbSidebar{height:100dvh;width:min(260px,82vw);padding-top:calc(16px + env(safe-area-inset-top));padding-bottom:calc(16px + env(safe-area-inset-bottom))}
-#tbToggle{top:calc(14px + env(safe-area-inset-top));left:calc(14px + env(safe-area-inset-left))}
-#tbSidebar.open + #tbToggle{left:calc(min(260px,82vw) + 14px)}
-.tb-card{max-height:90dvh}
-.filters{display:flex;flex-wrap:wrap;gap:10px}
-.filters > *{flex:1 1 150px;min-width:0}
-.filters #q{flex:3 1 260px}
-.feed{grid-template-columns:repeat(auto-fill,minmax(min(320px,100%),1fr))}
-.card video{display:block}
-.card-title h3,.review-text,.meta{overflow-wrap:anywhere}
-.card-foot{flex-wrap:wrap;gap:8px}
-/* Desktop/laptop/iPad landscape: keep "Post a route review" in view while scrolling */
-@media (min-width:901px){
-  main{min-height:100dvh;padding-bottom:0}
-  main > section{padding-bottom:48px}
-  form.panel{top:16px;max-height:calc(100dvh - 32px)}
+
+/* ===================== Responsive ===================== */
+@media (max-width:1100px){main{grid-template-columns:330px minmax(0,1fr);gap:18px}}
+/* iPad portrait, tablets, phones: form collapses above the feed */
+@media (max-width:900px){
+  main{grid-template-columns:1fr}
+  #reviewForm{position:static;max-height:none;overflow:visible}
+  #reviewForm h2{margin:0}
+  .form-toggle{cursor:pointer}
+  .chev{display:block;font-size:1.5rem;line-height:1;color:var(--accent);font-weight:400}
+  .chev::before{content:"+"}
+  .form-toggle[aria-expanded=true] .chev::before{content:"−"}
+  #reviewForm:not(.collapsed) .posting-as{margin-top:6px}
+  #reviewForm.collapsed #formBody{display:none}
 }
-/* Small laptops + iPad landscape */
-@media (max-width:1100px){main{grid-template-columns:330px 1fr;gap:18px}}
-/* iPad portrait, Galaxy Tab, phones: form above the feed */
-@media (max-width:900px){main{grid-template-columns:1fr}}
-/* Phones */
 @media (max-width:600px){
-  header{padding:22px 60px 8px}
+  header{padding:calc(22px + var(--safe-t)) 60px 8px}
   header h1{font-size:1.6rem}
   header p{font-size:.88rem}
-  main{padding:12px 12px 32px;gap:16px}
+  main{padding:12px 12px calc(32px + var(--safe-b));gap:16px}
   .panel{padding:16px}
   .tb-modal{padding:10px}
   .tb-card{padding:18px}
@@ -156,91 +211,98 @@ button,.chip,.stars span,.file-drop{-webkit-tap-highlight-color:transparent;touc
   .tb-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
   .filters > *{flex-basis:calc(50% - 5px)}
   .filters #q{flex-basis:100%}
+  .card .tb-vid video{height:260px}
   .tb-vid:fullscreen .tb-vid-info{left:12px;bottom:70px;font-size:.9rem}
 }
-/* Touch screens: stop iPhone/iPad/Samsung zooming in on fields, bigger tap targets */
+/* Touch screens: stop iOS zooming into fields, bigger tap targets */
 @media (pointer:coarse){
-  input,select,textarea{font-size:16px !important}
+  input,select,textarea{font-size:16px!important}
   .chip{padding:8px 12px}
   .tb-nav{padding:12px}
 }
-/* Short laptop screens (e.g. 13" MacBook, small Windows laptops) */
 @media (min-width:901px) and (max-height:760px){header{padding:16px 24px 8px}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 </style>
 </head>
-<body class="tb-gated">
+<body>
 
-<!-- ===================== NEW: Sidebar ===================== -->
-<aside id="tbSidebar">
+<!-- ===================== Sidebar ===================== -->
+<aside id="tbSidebar" aria-label="Account menu">
   <div class="tb-me">
     <img id="tbSideAvatar" class="tb-avatar" alt="">
-    <div><div id="tbSideName" style="font-weight:700">Guest</div><span class="tb-muted">ThaiBeta</span></div>
+    <div><div id="tbSideName" class="tb-side-name">Guest</div><span class="tb-muted">ThaiBeta</span></div>
   </div>
-  <button class="tb-nav" onclick="tbOpen('tbProfileModal')">👤 Profile</button>
-  <button class="tb-nav" onclick="tbOpen('tbSettingsModal')">⚙️ Settings</button>
-  <button class="tb-nav login" id="tbLoginBtn" onclick="tbOpenLogin()">🔑 Log in</button>
-  <button class="tb-nav logout" id="tbLogoutBtn" onclick="tbLogout()">Log out</button>
+  <button type="button" class="tb-nav" data-action="profile">👤 Profile</button>
+  <button type="button" class="tb-nav" data-action="settings">⚙️ Settings</button>
+  <button type="button" class="tb-nav login" id="tbLoginBtn" data-action="login">🔑 Log in</button>
+  <button type="button" class="tb-nav logout" id="tbLogoutBtn" data-action="logout" hidden>Log out</button>
 </aside>
-<button id="tbToggle" aria-label="Menu" onclick="document.getElementById('tbSidebar').classList.toggle('open')">☰</button>
+<button type="button" id="tbToggle" aria-label="Menu" aria-controls="tbSidebar" aria-expanded="false" data-action="toggle-sidebar">☰</button>
+<div id="tbScrim" data-action="close-sidebar"></div>
 
 <!-- Profile popup -->
-<div id="tbProfileModal" class="tb-modal" onclick="if(event.target===this)tbClose(this.id)">
-  <div class="tb-card">
-    <button class="tb-close" onclick="tbClose('tbProfileModal')">×</button>
-    <h2>Profile</h2>
+<div id="tbProfileModal" class="tb-modal">
+  <div class="tb-card" role="dialog" aria-modal="true" aria-labelledby="tbProfileTitle" tabindex="-1">
+    <button type="button" class="tb-close" data-action="close" data-target="tbProfileModal" aria-label="Close">×</button>
+    <h2 id="tbProfileTitle">Profile</h2>
     <div class="tb-profile-head">
       <img id="tbProfAvatar" class="tb-avatar" alt="">
       <div style="flex:1;min-width:200px">
-        <div id="tbProfName" style="font-size:1.3rem;font-weight:800"></div>
+        <div id="tbProfName" class="tb-prof-name"></div>
         <div id="tbAvatarEdit">
           <label for="tbAvatarFile">Change profile photo (max 5 MB)</label>
           <input type="file" id="tbAvatarFile" accept="image/*">
-          <div id="tbAvatarMsg" class="tb-msg"></div>
+          <div id="tbAvatarMsg" class="tb-msg" role="status"></div>
         </div>
       </div>
     </div>
     <h3 id="tbVidsTitle">My beta videos</h3>
-    <div id="tbMyVideos" class="tb-grid"><small>Loading…</small></div>
+    <div id="tbMyVideos" class="tb-grid"></div>
   </div>
 </div>
 
 <!-- Settings popup -->
-<div id="tbSettingsModal" class="tb-modal" onclick="if(event.target===this)tbClose(this.id)">
-  <div class="tb-card">
-    <button class="tb-close" onclick="tbClose('tbSettingsModal')">×</button>
-    <h2>Settings</h2>
+<div id="tbSettingsModal" class="tb-modal">
+  <div class="tb-card" role="dialog" aria-modal="true" aria-labelledby="tbSettingsTitle" tabindex="-1">
+    <button type="button" class="tb-close" data-action="close" data-target="tbSettingsModal" aria-label="Close">×</button>
+    <h2 id="tbSettingsTitle">Settings</h2>
 
-    <h3>Username</h3>
-    <label for="tbNewName">New username (3–30 characters)</label>
-    <input type="text" id="tbNewName" maxlength="30">
-    <button class="btn-sm" style="margin-top:12px" onclick="tbSaveUsername()">Save username</button>
-    <div id="tbNameMsg" class="tb-msg"></div>
+    <form id="tbNameForm">
+      <h3>Username</h3>
+      <label for="tbNewName">New username (3–30 characters)</label>
+      <input type="text" id="tbNewName" maxlength="30" autocomplete="nickname">
+      <button type="submit" class="btn-sm" id="tbNameBtn" style="margin-top:12px">Save username</button>
+      <div id="tbNameMsg" class="tb-msg" role="status"></div>
+    </form>
 
-    <h3>Password</h3>
-    <label for="tbCurPw">Current password</label>
-    <input id="tbCurPw" type="password" autocomplete="current-password">
-    <label for="tbNewPw">New password (6+ characters)</label>
-    <input id="tbNewPw" type="password" autocomplete="new-password">
-    <label for="tbNewPw2">Confirm new password</label>
-    <input id="tbNewPw2" type="password" autocomplete="new-password">
-    <button class="btn-sm" style="margin-top:12px" onclick="tbChangePassword()">Change password</button>
-    <div id="tbPwMsg" class="tb-msg"></div>
+    <form id="tbPwForm">
+      <h3>Password</h3>
+      <input type="email" id="tbPwEmail" autocomplete="username" hidden>
+      <label for="tbCurPw">Current password</label>
+      <input id="tbCurPw" type="password" autocomplete="current-password" required>
+      <label for="tbNewPw">New password (6+ characters)</label>
+      <input id="tbNewPw" type="password" autocomplete="new-password" required minlength="6">
+      <label for="tbNewPw2">Confirm new password</label>
+      <input id="tbNewPw2" type="password" autocomplete="new-password" required minlength="6">
+      <button type="submit" class="btn-sm" id="tbPwBtn" style="margin-top:12px">Change password</button>
+      <div id="tbPwMsg" class="tb-msg" role="status"></div>
+    </form>
   </div>
 </div>
+
 <!-- Log in / Sign up popup -->
-<div id="tbLoginModal" class="tb-modal" onclick="if(event.target===this)tbClose(this.id)">
-  <form class="tb-login" id="tbLoginForm">
-    <button type="button" class="tb-close" onclick="tbBrowseAsGuest()" title="Browse without logging in" aria-label="Close">×</button>
+<div id="tbLoginModal" class="tb-modal">
+  <form class="tb-login" id="tbLoginForm" role="dialog" aria-modal="true" aria-labelledby="tbLoginTitle" tabindex="-1">
+    <button type="button" class="tb-close" data-action="dismiss-login" title="Browse without logging in" aria-label="Close and browse as guest">×</button>
     <h2 id="tbLoginTitle">Log in</h2>
-    <input type="text" id="tbLoginName" placeholder="Username" maxlength="30" style="display:none" autocomplete="username">
-    <input type="email" id="tbLoginEmail" placeholder="Email" required autocomplete="email">
-    <input type="password" id="tbLoginPw" placeholder="Password" required minlength="6" autocomplete="current-password">
+    <input type="text" id="tbLoginName" placeholder="Username" maxlength="30" autocomplete="nickname" aria-label="Username" hidden>
+    <input type="email" id="tbLoginEmail" placeholder="Email" required autocomplete="email" aria-label="Email">
+    <input type="password" id="tbLoginPw" placeholder="Password" required minlength="6" autocomplete="current-password" aria-label="Password">
     <button type="submit" class="tb-login-btn" id="tbLoginSubmit">Log in</button>
-    <div id="tbLoginMsg" class="tb-msg"></div>
-    <button type="button" class="tb-login-switch" id="tbLoginSwitch" onclick="tbLoginMode(!tbSignUp)">or, sign up</button>
+    <div id="tbLoginMsg" class="tb-msg" role="status"></div>
+    <button type="button" class="tb-login-switch" id="tbLoginSwitch" data-action="switch-auth">or, sign up</button>
   </form>
 </div>
-<!-- ===================== END NEW ===================== -->
 
 <header>
   <h1>🧗 Thai<span>Beta</span></h1>
@@ -249,439 +311,633 @@ button,.chip,.stars span,.file-drop{-webkit-tap-highlight-color:transparent;touc
 
 <main>
   <form class="panel" id="reviewForm" autocomplete="off">
-    <h2>Post a route review</h2>
+    <h2><button type="button" class="form-toggle" id="formToggle" aria-expanded="true" aria-controls="formBody" data-action="toggle-form">Post a route review<span class="chev" aria-hidden="true"></span></button></h2>
+    <p class="posting-as" id="postingAs"></p>
 
-    <label for="reviewer">Your name</label>
-    <input type="text" id="reviewer" placeholder="e.g. Jarukit" required />
+    <div id="formBody">
+      <div class="row">
+        <div><label for="city">City / Province</label><select id="city" required></select></div>
+        <div>
+          <label for="gym">Gym</label><select id="gym" required></select>
+          <input type="text" id="gymOther" placeholder="Type your gym name" maxlength="80" aria-label="Gym name" hidden style="margin-top:8px" />
+        </div>
+      </div>
 
-    <div class="row">
-      <div><label for="city">City / Province</label><select id="city" required></select></div>
-      <div><label for="gym">Gym</label><select id="gym" required></select><input type="text" id="gymOther" placeholder="Type your gym name" style="display:none;margin-top:8px" /></div>
-    </div>
+      <label for="area">Where in the gym (wall / sector)</label>
+      <input type="text" id="area" placeholder="e.g. Cave wall, left of the arete" maxlength="120" required />
 
-    <label for="area">Where in the gym (wall / sector)</label>
-    <input type="text" id="area" placeholder="e.g. Cave wall, left of the arete" required />
+      <label for="routeName">Route name</label>
+      <input type="text" id="routeName" placeholder="e.g. Mango Sticky Crimps" maxlength="120" required />
 
-    <label for="routeName">Route name</label>
-    <input type="text" id="routeName" placeholder="e.g. Mango Sticky Crimps" required />
+      <div class="row">
+        <div><label for="type">Climb type</label><select id="type" required></select></div>
+        <div><label for="grade">Grade</label><select id="grade" required></select></div>
+      </div>
 
-    <div class="row">
-      <div><label for="type">Climb type</label>
-        <select id="type" required><option>Boulder</option><option>Top rope</option><option>Lead</option><option>Auto-belay</option></select></div>
-      <div><label for="grade">Grade</label><select id="grade" required></select></div>
-    </div>
+      <span class="label" id="holdLabel">Hold colour</span>
+      <div class="chips" id="holdChips" role="group" aria-labelledby="holdLabel"></div>
 
-    <label for="holdColor">Hold colour</label>
-    <select id="holdColor">
-      <option value="">— Select —</option>
-      <option value="#e5484d">Red</option><option value="#ff7a1a">Orange</option><option value="#f5d90a">Yellow</option>
-      <option value="#30a46c">Green</option><option value="#6ee7c5">Mint</option><option value="#3e63dd">Blue</option><option value="#8e4ec6">Purple</option>
-      <option value="#e93d82">Pink</option><option value="#111111">Black</option><option value="#f5f5f5">White</option>
-      <option value="#8d6e63">Brown</option>
-    </select>
+      <span class="label" id="styleLabel">Route style (select all that apply)</span>
+      <div class="chips" id="styleChips" role="group" aria-labelledby="styleLabel"></div>
 
-    <label>Route style (select all that apply)</label>
-    <div class="chips" id="styleChips"></div>
+      <span class="label" id="ratingLabel">Rating</span>
+      <div class="rating-row">
+        <div class="stars" id="stars" role="group" aria-labelledby="ratingLabel"></div>
+        <span id="ratingText" class="tb-muted"></span>
+      </div>
 
-    <label>Rating</label>
-    <div class="stars" id="stars"></div>
+      <label for="reviewText">Review</label>
+      <textarea id="reviewText" maxlength="3000" placeholder="How did it feel? Crux, sandbagged or soft, tips for the sequence..." required></textarea>
 
-    <label for="reviewText">Review</label>
-    <textarea id="reviewText" placeholder="How did it feel? Crux, sandbagged or soft, tips for the sequence..." required></textarea>
-
-    <label>Beta video</label>
-    <div class="file-drop" id="fileDrop">
-      📹 Click or drop a video here<br><small>MP4 / MOV / WebM · max 50 MB</small>
+      <span class="label">Beta video (optional)</span>
+      <button type="button" class="file-drop" id="fileDrop">📹 Choose or drop a video<br><small>MP4 / MOV / WebM · max 50 MB</small></button>
       <input type="file" id="video" accept="video/*" hidden />
-    </div>
-    <video id="videoPreview" controls playsinline></video>
+      <div class="picked" id="videoPicked" hidden><span id="videoName"></span><button type="button" class="btn-link" data-action="remove-video">Remove</button></div>
+      <video id="videoPreview" controls playsinline hidden></video>
 
-    <button type="submit" class="btn-primary" id="submitBtn">Publish review</button>
+      <button type="submit" class="btn-primary" id="submitBtn">Publish review</button>
+    </div>
   </form>
 
-  <section>
+  <section aria-label="Reviews">
     <div class="filters">
-      <input type="text" id="q" placeholder="🔍 Search route, gym, area, review..." />
-      <select id="fCity"><option value="">All cities</option></select>
-      <select id="fType"><option value="">All types</option><option>Boulder</option><option>Top rope</option><option>Lead</option><option>Auto-belay</option></select>
-      <select id="fStyle"><option value="">All styles</option></select>
-      <select id="sort"><option value="new">Newest</option><option value="old">Oldest</option><option value="rating">Top rated</option></select>
+      <input type="search" id="q" placeholder="🔍 Search route, gym, grade, review..." aria-label="Search reviews" />
+      <select id="fCity" aria-label="Filter by city"><option value="">All cities</option></select>
+      <select id="fGym" aria-label="Filter by gym"><option value="">All gyms</option></select>
+      <select id="fType" aria-label="Filter by climb type"><option value="">All types</option></select>
+      <select id="fStyle" aria-label="Filter by style"><option value="">All styles</option></select>
+      <select id="sort" aria-label="Sort reviews"><option value="new">Newest</option><option value="old">Oldest</option><option value="rating">Top rated</option></select>
     </div>
-    <div class="stats" id="stats"></div>
+    <div class="stats" id="stats" aria-live="polite"></div>
     <div class="feed" id="feed"></div>
   </section>
 </main>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-/* ---------- Supabase config (replace with your own) ---------- */
+/* =====================================================================
+   Config
+   ===================================================================== */
 const SUPABASE_URL = "https://obokvhahkdcbgipompxy.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_kxEo3dqrte7MT42_9EXwIw_o_Gdmp1Q";   // anon key only, never service_role
 const BUCKET = "videos";
+const AVATAR_BUCKET = "avatars";
+const MAX_VIDEO_MB = 50;     // Supabase free plan limit per file
+const MAX_AVATAR_MB = 5;
+const PROFILE_COLS = "id, username, avatar_path, updated_at";
+
 const GYMS = ["Stonegoat The Parq","Stonegoat S69","Balance Rama 9","Balance Prime","Urban Playground","Rock Domain","Climb Central","Beat Active","Boulder Planet"];
-const MAX_VIDEO_MB = 50;                            // Supabase free plan limit per file
-
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } // remember the account on this device
-});
-let user = null, cache = [], profilesById = {};
-
-/* ---------- Config ---------- */
 const CITIES = ["Bangkok","Chiang Mai","Phuket","Krabi","Pattaya / Chonburi","Hua Hin","Khon Kaen","Nonthaburi","Other"];
 const STYLES = ["Crimpy","Slopers","Pinches","Jugs","Pockets","Dyno","Overhang","Slab","Vertical","Roof","Compression","Balance","Technical","Powerful","Endurance","Heel hooks","Toe hooks","Coordination"];
+const HOLD_COLORS = [["Red","#e5484d"],["Orange","#ff7a1a"],["Yellow","#f5d90a"],["Green","#30a46c"],["Mint","#6ee7c5"],["Blue","#3e63dd"],["Purple","#8e4ec6"],["Pink","#e93d82"],["Black","#111111"],["White","#f5f5f5"],["Brown","#8d6e63"]];
 const FRENCH = ["4","5a","5b","5c","6a","6a+","6b","6b+","6c","6c+","7a","7a+","7b","7b+","7c","7c+","8a","8a+","8b","8b+"];
 const GRADES = {"Boulder":["VB","V0","V1","V2","V3","V4","V5","V6","V7","V8","V9","V10+"],"Top rope":FRENCH,"Lead":FRENCH,"Auto-belay":FRENCH};
+const TYPES = Object.keys(GRADES);
 
-/* ---------- Helpers ---------- */
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }   // remember the account on this device
+});
+
+/* =====================================================================
+   State
+   ===================================================================== */
+let user = null, myProfile = null, guestMode = false;
+let reviews = [], loadState = "loading", loadError = "", loadSeq = 0, lastFetch = 0, reviewsSig = "";
+const profilesById = {};
+let rating = 0, holdColor = null, videoFile = null, videoUrl = null;
+const selectedStyles = new Set();
+
+/* =====================================================================
+   Helpers
+   ===================================================================== */
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-function toast(msg){const t=$("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2800)}
+const nowIso = () => new Date().toISOString();
+const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+const safeColor = c => /^#[0-9a-f]{3,8}$/i.test(c || "") ? c : null;          // only allow real hex colours into style=""
+const clampRating = v => Math.max(0, Math.min(5, Math.round(Number(v) || 0)));
+const publicUrl = (bucket, path) => sb.storage.from(bucket).getPublicUrl(path).data.publicUrl;
+const mb = bytes => (bytes / 1048576).toFixed(1);
+const isMobile = window.matchMedia("(max-width:900px)");
+const onMedia = (mq, fn) => mq.addEventListener ? mq.addEventListener("change", fn) : mq.addListener(fn);
+const DEFAULT_AVATAR = "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" fill="#2a231f"/><circle cx="20" cy="15" r="7" fill="#a99d93"/><rect x="8" y="25" width="24" height="13" rx="6" fill="#a99d93"/></svg>');
 
-/* ---------- Auth ---------- */
-let tbSignUp = false;
-function tbLoginMode(signUp){
-  tbSignUp = signUp;
+let toastTimer;
+function toast(msg, kind = "ok"){
+  const t = $("toast");
+  t.textContent = msg;
+  t.className = "toast show" + (kind === "err" ? " err" : "");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), kind === "err" ? 4500 : 2800);
+}
+function setMsg(id, text = "", ok = true){ const el = $(id); el.textContent = text; el.className = "tb-msg " + (text ? (ok ? "ok" : "err") : ""); }
+
+// Put a button into a "working…" state, then call busy(btn) again to restore it
+function busy(btn, label){
+  if (label){
+    if (!("label" in btn.dataset)) btn.dataset.label = btn.textContent;
+    btn.textContent = label; btn.disabled = true;
+  } else {
+    if ("label" in btn.dataset) btn.textContent = btn.dataset.label;
+    delete btn.dataset.label; btn.disabled = false;
+  }
+}
+
+// Turn Supabase / network errors into plain sentences
+function friendly(err){
+  const m = err?.message || String(err || "Something went wrong");
+  if (/invalid login credentials/i.test(m)) return "Wrong email or password.";
+  if (/email not confirmed/i.test(m)) return "Confirm your email first. Check your inbox for the link.";
+  if (/failed to fetch|networkerror|load failed/i.test(m)) return "Can't reach the server. Check your connection and try again.";
+  if (/payload too large|exceeded the maximum allowed size/i.test(m)) return "That file is too big to upload.";
+  if (/row-level security|permission denied/i.test(m)) return "You don't have permission to do that. Try logging out and in again.";
+  if (/rate limit/i.test(m)) return "Too many tries. Wait a minute and try again.";
+  return m;
+}
+
+function avatarUrl(p){
+  if (!p?.avatar_path) return DEFAULT_AVATAR;
+  return publicUrl(AVATAR_BUCKET, p.avatar_path) + "?v=" + encodeURIComponent(p.updated_at || "");
+}
+function myName(){ return myProfile?.username || user?.user_metadata?.username || user?.email?.split("@")[0] || "Climber"; }
+
+// Blur the site straight away for visitors with no saved login, so they never see a flash of the page
+try {
+  const ref = new URL(SUPABASE_URL).hostname.split(".")[0];
+  if (!localStorage.getItem(`sb-${ref}-auth-token`)) document.body.classList.add("tb-gated");
+} catch { document.body.classList.add("tb-gated"); }
+
+/* =====================================================================
+   Sidebar + modals
+   ===================================================================== */
+function openSidebar(){ $("tbSidebar").classList.add("open"); $("tbToggle").setAttribute("aria-expanded", "true"); }
+function closeSidebar(){ $("tbSidebar").classList.remove("open"); $("tbToggle").setAttribute("aria-expanded", "false"); }
+function toggleSidebar(){ $("tbSidebar").classList.contains("open") ? closeSidebar() : openSidebar(); }
+
+let lastFocus = null;
+function syncScrollLock(){ document.body.classList.toggle("no-scroll", !!document.querySelector(".tb-modal.show")); }
+function openModal(id, focusEl){
+  if (!document.querySelector(".tb-modal.show")) lastFocus = document.activeElement;
+  closeSidebar();
+  $(id).classList.add("show");
+  syncScrollLock();
+  requestAnimationFrame(() => (focusEl || $(id).querySelector("[role=dialog]"))?.focus({ preventScroll: true }));
+}
+function closeModal(id){
+  const m = $(id);
+  if (!m.classList.contains("show")) return;
+  m.classList.remove("show");
+  m.querySelectorAll("video").forEach(v => v.pause());
+  syncScrollLock();
+  if (!document.querySelector(".tb-modal.show") && lastFocus?.isConnected) lastFocus.focus({ preventScroll: true });
+}
+
+/* =====================================================================
+   Auth
+   ===================================================================== */
+let signUpMode = false;
+function setAuthMode(signUp){
+  signUpMode = signUp;
   $("tbLoginTitle").textContent = signUp ? "Sign up" : "Log in";
   $("tbLoginSubmit").textContent = signUp ? "Sign up" : "Log in";
   $("tbLoginSwitch").textContent = signUp ? "or, log in" : "or, sign up";
-  $("tbLoginName").style.display = signUp ? "" : "none";
+  $("tbLoginName").hidden = !signUp;
   $("tbLoginName").required = signUp;
   $("tbLoginPw").autocomplete = signUp ? "new-password" : "current-password";
-  $("tbLoginMsg").textContent = "";
+  setMsg("tbLoginMsg");
 }
-// × on the login popup: close it and look around without an account
-function tbBrowseAsGuest(){
-  document.body.classList.remove("tb-gated");
-  $("tbLoginModal").classList.remove("show");
+function openLogin(signUp = false){
+  setAuthMode(signUp);
+  openModal("tbLoginModal", $(signUp ? "tbLoginName" : "tbLoginEmail"));
 }
-function tbOpenLogin(signUp = false){
-  $("tbSidebar").classList.remove("open");
-  tbLoginMode(signUp);
-  $("tbLoginModal").classList.add("show");
-  setTimeout(() => $(signUp ? "tbLoginName" : "tbLoginEmail").focus(), 0);
+// × / Esc / clicking outside the log in box: look around without an account
+function dismissLogin(){
+  if (!user){ guestMode = true; document.body.classList.remove("tb-gated"); }
+  closeModal("tbLoginModal");
 }
+
 $("tbLoginForm").addEventListener("submit", async e => {
   e.preventDefault();
   const email = $("tbLoginEmail").value.trim(), password = $("tbLoginPw").value, username = $("tbLoginName").value.trim();
-  if (tbSignUp && username.length < 3) return tbMsg("tbLoginMsg", "Username must be at least 3 characters", false);
-  const btn = $("tbLoginSubmit"); btn.disabled = true;
-  const { data, error } = tbSignUp
-    ? await sb.auth.signUp({ email, password })
-    : await sb.auth.signInWithPassword({ email, password });
-  btn.disabled = false;
-  if (error) return tbMsg("tbLoginMsg", error.message, false);
-  if (tbSignUp && !data.session) return tbMsg("tbLoginMsg", "Check your email to confirm your account, then log in.", true);
-  if (tbSignUp) { // save the chosen username to the profile
-    const { error: pErr } = await sb.from("profiles").upsert({ id: data.user.id, username, updated_at: new Date().toISOString() });
-    if (pErr) toast(pErr.code === "23505" ? "That username is taken, change it in Settings" : pErr.message);
-    else { await tbLoadProfile(); render(); }
+  const btn = $("tbLoginSubmit");
+  setMsg("tbLoginMsg");
+  try {
+    if (signUpMode){
+      if (username.length < 3) return setMsg("tbLoginMsg", "Username must be at least 3 characters", false);
+      busy(btn, "Creating account…");
+      const { data: taken } = await sb.from("profiles").select("id").eq("username", username).maybeSingle();
+      if (taken) return setMsg("tbLoginMsg", "That username is taken. Try another.", false);
+      // The username rides along with the account, so it is saved even if the email needs confirming first
+      const { data, error } = await sb.auth.signUp({ email, password, options: { data: { username } } });
+      if (error) return setMsg("tbLoginMsg", friendly(error), false);
+      if (data.user && Array.isArray(data.user.identities) && !data.user.identities.length)
+        return setMsg("tbLoginMsg", "An account with this email already exists. Log in instead.", false);
+      if (!data.session){
+        setAuthMode(false);
+        $("tbLoginPw").value = "";
+        return setMsg("tbLoginMsg", "Check your email for a confirmation link, then log in here.", true);
+      }
+      toast("Welcome to ThaiBeta! 🧗");
+    } else {
+      busy(btn, "Logging in…");
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) return setMsg("tbLoginMsg", friendly(error), false);
+      toast("Logged in");
+    }
+    $("tbLoginPw").value = "";
+    closeModal("tbLoginModal");
+  } catch (err) {
+    setMsg("tbLoginMsg", friendly(err), false);
+  } finally {
+    busy(btn);
   }
-  $("tbLoginPw").value = "";
-  $("tbLoginModal").classList.remove("show");
-  toast(tbSignUp ? "Welcome to ThaiBeta! 🧗" : "Logged in");
-});
-sb.auth.onAuthStateChange((_event, session) => {
-  user = session?.user ?? null;
-  setTimeout(() => { render(); tbLoadProfile(); }, 0);   // avoid calling Supabase inside the callback
 });
 
-/* ---------- Form setup ---------- */
-let rating = 0, selectedStyles = new Set(), videoFile = null;
+// Only react when the person actually changes (not on every token refresh)
+sb.auth.onAuthStateChange((event, session) => {
+  const next = session?.user ?? null;
+  const changed = event === "INITIAL_SESSION" || next?.id !== user?.id;
+  user = next;
+  if (changed) setTimeout(onUserChanged, 0);   // don't call Supabase inside this callback
+});
 
-$("city").innerHTML = CITIES.map(c => `<option>${c}</option>`).join("");
-$("fCity").innerHTML += CITIES.map(c => `<option>${c}</option>`).join("");
-$("fStyle").innerHTML += STYLES.map(s => `<option>${s}</option>`).join("");
-$("gym").innerHTML = `<option value="">— Select gym —</option>` + GYMS.map(g => `<option>${g}</option>`).join("") + `<option value="__other">Other (type your own)</option>`;
+async function onUserChanged(){
+  $("tbLogoutBtn").hidden = !user;
+  $("tbLoginBtn").hidden = !!user;
+  if (user){
+    document.body.classList.remove("tb-gated");
+    closeModal("tbLoginModal");
+  } else {
+    myProfile = null;
+    closeModal("tbProfileModal"); closeModal("tbSettingsModal");
+    if (!guestMode){ document.body.classList.add("tb-gated"); if (!$("tbLoginModal").classList.contains("show")) openLogin(); }
+  }
+  refreshMeUI();
+  draw();
+  if (user) await loadMyProfile();
+}
+
+async function loadMyProfile(){
+  const uid = user.id;
+  let { data: p, error } = await sb.from("profiles").select(PROFILE_COLS).eq("id", uid).maybeSingle();
+  if (error) console.error(error);
+  // First log in after signing up: save the username they picked
+  const wanted = user?.user_metadata?.username;
+  if (!p?.username && wanted){
+    const res = await sb.from("profiles").upsert({ id: uid, username: wanted, updated_at: nowIso() }).select(PROFILE_COLS).maybeSingle();
+    if (res.error) toast(res.error.code === "23505" ? "That username was taken. Choose another in Settings." : friendly(res.error), "err");
+    else p = res.data;
+  }
+  if (user?.id !== uid) return;   // logged out while we were waiting
+  myProfile = p || { id: uid, username: null, avatar_path: null };
+  if (p) profilesById[uid] = p;
+  refreshMeUI();
+  draw();
+}
+
+function refreshMeUI(){
+  $("tbSideName").textContent = user ? myName() : "Guest";
+  $("tbSideAvatar").src = user ? avatarUrl(myProfile) : DEFAULT_AVATAR;
+  $("postingAs").innerHTML = user ? `Posting as <b>${esc(myName())}</b>` : "Log in when you're ready to publish.";
+  const btn = $("submitBtn");
+  if (!btn.disabled) btn.textContent = user ? "Publish review" : "Log in to publish";
+}
+
+async function logout(){
+  closeSidebar();
+  guestMode = false;
+  const { error } = await sb.auth.signOut();
+  if (error) toast(friendly(error), "err"); else toast("Logged out");
+}
+
+/* =====================================================================
+   Review form
+   ===================================================================== */
+$("city").innerHTML = CITIES.map(c => `<option>${esc(c)}</option>`).join("");
+$("gym").innerHTML = `<option value="">— Select gym —</option>` + GYMS.map(g => `<option>${esc(g)}</option>`).join("") + `<option value="__other">Other (type your own)</option>`;
+$("type").innerHTML = TYPES.map(t => `<option>${t}</option>`).join("");
+$("fCity").innerHTML += CITIES.map(c => `<option>${esc(c)}</option>`).join("");
+$("fType").innerHTML += TYPES.map(t => `<option>${t}</option>`).join("");
+$("fStyle").innerHTML += STYLES.map(s => `<option>${esc(s)}</option>`).join("");
+
 function toggleGymOther(){
-  const o = $("gym").value === "__other";
-  $("gymOther").style.display = o ? "block" : "none";
-  $("gymOther").required = o;
-  if (!o) $("gymOther").value = "";
+  const other = $("gym").value === "__other";
+  $("gymOther").hidden = !other;
+  $("gymOther").required = other;
+  if (other) $("gymOther").focus(); else $("gymOther").value = "";
 }
 $("gym").addEventListener("change", toggleGymOther);
 
 function fillGrades(){ $("grade").innerHTML = GRADES[$("type").value].map(g => `<option>${g}</option>`).join(""); }
-$("type").addEventListener("change", fillGrades); fillGrades();
+$("type").addEventListener("change", fillGrades);
+fillGrades();
 
-$("styleChips").innerHTML = STYLES.map(s => `<span class="chip" data-style="${s}">${s}</span>`).join("");
-$("styleChips").addEventListener("click", e => {
-  const chip = e.target.closest(".chip"); if (!chip) return;
-  const s = chip.dataset.style;
-  selectedStyles.has(s) ? selectedStyles.delete(s) : selectedStyles.add(s);
-  chip.classList.toggle("active");
+// Hold colour: pick one (tap again to clear)
+$("holdChips").innerHTML = HOLD_COLORS.map(([name, hex]) =>
+  `<button type="button" class="chip" data-hold="${hex}" data-name="${name}" aria-pressed="false"><span class="dot" style="background:${hex}"></span>${name}</button>`).join("");
+$("holdChips").addEventListener("click", e => {
+  const chip = e.target.closest("[data-hold]"); if (!chip) return;
+  holdColor = holdColor?.hex === chip.dataset.hold ? null : { hex: chip.dataset.hold, name: chip.dataset.name };
+  paintChips();
 });
 
-function drawStars(){ $("stars").innerHTML = [1,2,3,4,5].map(i => `<span data-v="${i}" class="${i <= rating ? "on" : ""}">★</span>`).join(""); }
-$("stars").addEventListener("click", e => { if (e.target.dataset.v) { rating = +e.target.dataset.v; drawStars(); } });
-drawStars();
+// Styles: pick any number
+$("styleChips").innerHTML = STYLES.map(s => `<button type="button" class="chip" data-style="${esc(s)}" aria-pressed="false">${esc(s)}</button>`).join("");
+$("styleChips").addEventListener("click", e => {
+  const chip = e.target.closest("[data-style]"); if (!chip) return;
+  const s = chip.dataset.style;
+  selectedStyles.has(s) ? selectedStyles.delete(s) : selectedStyles.add(s);
+  paintChips();
+});
+function paintChips(){
+  $("holdChips").querySelectorAll("[data-hold]").forEach(c => c.setAttribute("aria-pressed", String(holdColor?.hex === c.dataset.hold)));
+  $("styleChips").querySelectorAll("[data-style]").forEach(c => c.setAttribute("aria-pressed", String(selectedStyles.has(c.dataset.style))));
+}
 
+// Stars
+$("stars").innerHTML = [1,2,3,4,5].map(i => `<button type="button" data-v="${i}" aria-label="${plural(i, "star")}" aria-pressed="false">★</button>`).join("");
+$("stars").addEventListener("click", e => {
+  const b = e.target.closest("[data-v]"); if (!b) return;
+  rating = +b.dataset.v; paintStars();
+});
+function paintStars(){
+  [...$("stars").children].forEach((b, i) => { b.classList.toggle("on", i < rating); b.setAttribute("aria-pressed", String(i + 1 === rating)); });
+  $("ratingText").textContent = rating ? `${rating} / 5` : "Tap to rate";
+}
+paintStars();
+
+// Beta video picker + drag and drop
 function setVideo(file){
   if (!file) return;
-  if (!file.type.startsWith("video/")) return toast("Please choose a video file");
-  if (file.size > MAX_VIDEO_MB * 1024 * 1024) return toast(`Video must be under ${MAX_VIDEO_MB} MB`);
+  const looksLikeVideo = file.type.startsWith("video/") || /\.(mp4|mov|m4v|webm)$/i.test(file.name);
+  if (!looksLikeVideo) return toast("Choose a video file (MP4, MOV or WebM)", "err");
+  if (file.size > MAX_VIDEO_MB * 1048576) return toast(`That video is ${mb(file.size)} MB. The limit is ${MAX_VIDEO_MB} MB.`, "err");
+  clearVideo();
   videoFile = file;
-  const p = $("videoPreview"); p.src = URL.createObjectURL(file); p.style.display = "block";
+  videoUrl = URL.createObjectURL(file);
+  const p = $("videoPreview"); p.src = videoUrl; p.hidden = false;
+  $("videoName").textContent = `${file.name} (${mb(file.size)} MB)`;
+  $("videoPicked").hidden = false;
 }
-$("fileDrop").addEventListener("click", () => $("video").click());
+function clearVideo(){
+  if (videoUrl) URL.revokeObjectURL(videoUrl);
+  videoUrl = null; videoFile = null;
+  const p = $("videoPreview"); p.pause(); p.removeAttribute("src"); p.load(); p.hidden = true;
+  $("videoPicked").hidden = true;
+  $("video").value = "";
+}
+const drop = $("fileDrop");
+drop.addEventListener("click", () => $("video").click());
 $("video").addEventListener("change", e => setVideo(e.target.files[0]));
-$("fileDrop").addEventListener("dragover", e => e.preventDefault());
-$("fileDrop").addEventListener("drop", e => { e.preventDefault(); setVideo(e.dataTransfer.files[0]); });
+["dragenter","dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("drag"); }));
+["dragleave","drop"].forEach(ev => drop.addEventListener(ev, () => drop.classList.remove("drag")));
+drop.addEventListener("drop", e => { e.preventDefault(); setVideo(e.dataTransfer.files[0]); });
 
-/* ---------- Submit (upload video → insert row) ---------- */
+// Phones / tablets: the form folds up so the reviews are visible first
+function setFormOpen(open){
+  $("reviewForm").classList.toggle("collapsed", !open);
+  $("formToggle").setAttribute("aria-expanded", String(open));
+}
+function syncFormLayout(){
+  $("formToggle").tabIndex = isMobile.matches ? 0 : -1;
+  setFormOpen(!isMobile.matches);
+}
+onMedia(isMobile, syncFormLayout);
+syncFormLayout();
+
+/* ---------- Publish: upload video → insert row ---------- */
 $("reviewForm").addEventListener("submit", async e => {
   e.preventDefault();
-  if (!user) return tbOpenLogin();
-  if (!rating) return toast("Please give the route a rating ★");
-  const btn = $("submitBtn"); btn.disabled = true; btn.textContent = "Publishing...";
+  if (!user){ toast("Log in to publish your review"); return openLogin(); }
+  if (!rating){ toast("Give the route a star rating first", "err"); $("stars").querySelector("button").focus(); return; }
+  const btn = $("submitBtn");
+  let video_path = null;
   try {
-    let video_path = null;
-    if (videoFile) {
+    if (videoFile){
+      busy(btn, "Uploading video…");
       const ext = (videoFile.name.split(".").pop() || "mp4").toLowerCase();
       video_path = `${user.id}/${crypto.randomUUID()}.${ext}`;
-      const { error: upErr } = await sb.storage.from(BUCKET).upload(video_path, videoFile, { contentType: videoFile.type });
-      if (upErr) throw upErr;
+      const { error: upErr } = await sb.storage.from(BUCKET).upload(video_path, videoFile, { contentType: videoFile.type || "video/mp4", cacheControl: "3600" });
+      if (upErr){ video_path = null; throw upErr; }
     }
-    const hc = $("holdColor");
-    const { error } = await sb.from("reviews").insert({
-      reviewer: $("reviewer").value.trim(),
+    busy(btn, "Saving review…");
+    const { data, error } = await sb.from("reviews").insert({
+      reviewer: myName(),
       city: $("city").value,
       gym: $("gym").value === "__other" ? $("gymOther").value.trim() : $("gym").value,
       area: $("area").value.trim(),
       route_name: $("routeName").value.trim(),
       type: $("type").value,
       grade: $("grade").value,
-      hold_color: hc.value || null,
-      hold_color_name: hc.value ? hc.selectedOptions[0].text : null,
+      hold_color: holdColor?.hex || null,
+      hold_color_name: holdColor?.name || null,
       styles: [...selectedStyles],
       rating,
       review_text: $("reviewText").value.trim(),
       video_path
-    });
+    }).select().single();
     if (error) throw error;
-    toast("Review published! 🧗");
+
+    reviews.unshift(normalize(data));          // show it instantly, no reload
+    reviewsSig = sigOf(reviews);
+    fillGymFilter();
     resetForm();
-    render();
+    draw();
+    toast("Review published! 🧗");
+    if (isMobile.matches){ setFormOpen(false); $("feed").scrollIntoView({ behavior: "smooth", block: "start" }); }
   } catch (err) {
     console.error(err);
-    toast("Could not publish: " + (err.message || "unknown error"));
+    if (video_path) sb.storage.from(BUCKET).remove([video_path]);   // don't leave an orphan video behind
+    toast("Couldn't publish: " + friendly(err), "err");
   } finally {
-    btn.disabled = false; btn.textContent = "Publish review";
+    busy(btn);
+    refreshMeUI();
   }
 });
 
+// Clears the route details but keeps city + gym, since people often log several routes in one session
 function resetForm(){
-  const keepName = $("reviewer").value;
-  $("reviewForm").reset(); $("reviewer").value = keepName;
-  fillGrades(); toggleGymOther(); rating = 0; drawStars(); selectedStyles.clear();
-  document.querySelectorAll(".chip.active").forEach(c => c.classList.remove("active"));
-  videoFile = null; $("videoPreview").removeAttribute("src"); $("videoPreview").style.display = "none";
+  const keep = { city: $("city").value, gym: $("gym").value, gymOther: $("gymOther").value };
+  $("reviewForm").reset();
+  $("city").value = keep.city; $("gym").value = keep.gym;
+  $("gymOther").hidden = keep.gym !== "__other"; $("gymOther").value = keep.gymOther;
+  fillGrades();
+  rating = 0; paintStars();
+  holdColor = null; selectedStyles.clear(); paintChips();
+  clearVideo();
 }
 
-/* ---------- Load + render ---------- */
-async function loadReviews(){
-  const { data, error } = await sb.from("reviews").select("*").order("created_at", { ascending: false }).limit(300);
-  if (error) { console.error(error); toast("Could not load reviews: " + error.message); return []; }
+/* =====================================================================
+   Load reviews (once) — filtering and sorting happen locally
+   ===================================================================== */
+function normalize(r){
+  return {
+    ...r,
+    routeName: r.route_name || "",
+    text: r.review_text || "",
+    styles: Array.isArray(r.styles) ? r.styles : (r.styles ? String(r.styles).split(/,\s*/) : []),
+    rating: clampRating(r.rating),
+    holdColor: safeColor(r.hold_color),
+    holdColorName: r.hold_color_name || "",
+    createdAt: Date.parse(r.created_at) || Date.now(),
+    video: r.video_path ? publicUrl(BUCKET, r.video_path) : null
+  };
+}
+const sigOf = list => list.map(r => r.id).join(",");
 
-  // Get the username + photo of everyone who posted these reviews
-  const ids = [...new Set(data.map(r => r.user_id).filter(Boolean))];
-  if (ids.length) {
-    const { data: profs, error: pErr } = await sb.from("profiles").select("id, username, avatar_path, updated_at").in("id", ids);
+async function fetchReviews(){
+  const seq = ++loadSeq;
+  if (!reviews.length){ loadState = "loading"; draw(); }
+  const { data, error } = await sb.from("reviews").select("*").order("created_at", { ascending: false }).limit(300);
+  if (seq !== loadSeq) return;
+  if (error){ console.error(error); loadState = "error"; loadError = friendly(error); draw(); return; }
+
+  // Username + photo of everyone who posted (in batches so the request URL stays short)
+  const ids = [...new Set(data.map(r => r.user_id).filter(Boolean))].filter(id => !profilesById[id]);
+  for (let i = 0; i < ids.length; i += 100){
+    const { data: profs, error: pErr } = await sb.from("profiles").select(PROFILE_COLS).in("id", ids.slice(i, i + 100));
     if (pErr) console.error(pErr);
     (profs || []).forEach(p => profilesById[p.id] = p);
   }
+  if (seq !== loadSeq) return;
 
-  return data.map(r => ({
-    ...r,
-    routeName: r.route_name, holdColor: r.hold_color, holdColorName: r.hold_color_name,
-    text: r.review_text, styles: r.styles || [], createdAt: Date.parse(r.created_at),
-    video: r.video_path ? sb.storage.from(BUCKET).getPublicUrl(r.video_path).data.publicUrl : null
-  }));
+  lastFetch = Date.now();
+  const sig = sigOf(data);
+  if (loadState === "ready" && sig === reviewsSig) return;   // nothing new, don't interrupt anyone
+  reviews = data.map(normalize);
+  reviewsSig = sig;
+  loadState = "ready";
+  fillGymFilter();
+  draw();
 }
 
-async function render(){
-  cache = await loadReviews();
-  const all = cache;
+function fillGymFilter(){
+  const sel = $("fGym"), cur = sel.value;
+  const gyms = [...new Set([...GYMS, ...reviews.map(r => r.gym).filter(Boolean)])].sort((a, b) => a.localeCompare(b));
+  sel.innerHTML = `<option value="">All gyms</option>` + gyms.map(g => `<option>${esc(g)}</option>`).join("");
+  sel.value = gyms.includes(cur) ? cur : "";
+}
 
+/* =====================================================================
+   Render
+   ===================================================================== */
+const FILTER_IDS = ["q","fCity","fGym","fType","fStyle"];
+const hasFilters = () => FILTER_IDS.some(id => $(id).value.trim());
+function clearFilters(){ FILTER_IDS.forEach(id => $(id).value = ""); draw(); }
 
+function filtered(){
   const q = $("q").value.toLowerCase().trim();
-  const fCity = $("fCity").value, fType = $("fType").value, fStyle = $("fStyle").value, sort = $("sort").value;
-
-  const list = all.filter(r =>
-    (!fCity || r.city === fCity) && (!fType || r.type === fType) && (!fStyle || r.styles.includes(fStyle)) &&
-    (!q || [r.routeName, r.gym, r.area, r.text, r.reviewer].join(" ").toLowerCase().includes(q))
+  const fCity = $("fCity").value, fGym = $("fGym").value, fType = $("fType").value, fStyle = $("fStyle").value, sort = $("sort").value;
+  return reviews.filter(r =>
+    (!fCity || r.city === fCity) && (!fGym || r.gym === fGym) && (!fType || r.type === fType) && (!fStyle || r.styles.includes(fStyle)) &&
+    (!q || [r.routeName, r.gym, r.area, r.grade, r.text, r.reviewer, profilesById[r.user_id]?.username].join(" ").toLowerCase().includes(q))
   ).sort((a, b) =>
     sort === "old" ? a.createdAt - b.createdAt :
     sort === "rating" ? b.rating - a.rating || b.createdAt - a.createdAt :
     b.createdAt - a.createdAt);
-
-  const avg = list.length ? (list.reduce((s, r) => s + r.rating, 0) / list.length).toFixed(1) : "–";
-  $("stats").textContent = `${list.length} review(s) · ${list.filter(r => r.video).length} beta video(s) · avg rating ${avg}★`;
-
-  if (!list.length) { $("feed").innerHTML = `<div class="empty">No reviews yet. Send a route and post the first beta! 💪</div>`; return; }
-
-  $("feed").innerHTML = list.map(r => {
-    const media = r.video ? tbVideoHtml(r.video, r) : `<div class="no-video">No beta video uploaded</div>`;
-    const hold = r.holdColor ? `<span class="hold-dot" style="background:${esc(r.holdColor)}"></span>${esc(r.holdColorName)} holds · ` : "";
-    const mine = user && r.user_id === user.id;
-    return `
-      <article class="card">
-        ${media}
-        <div class="card-body">
-          <div class="card-title"><h3>${esc(r.routeName)}</h3><span class="grade">${esc(r.grade)}</span></div>
-          <div class="meta">📍 <strong>${esc(r.gym)}</strong>, ${esc(r.city)}<br>🧱 ${esc(r.area)}<br>${hold}${esc(r.type)}</div>
-          <div style="color:var(--accent-2)">${"★".repeat(r.rating)}<span style="color:#4a3d34">${"★".repeat(5 - r.rating)}</span></div>
-          ${r.styles.length ? `<div class="tags">${r.styles.map(s => `<span class="tag">${esc(s)}</span>`).join("")}</div>` : ""}
-          <div class="review-text">${esc(r.text)}</div>
-          <div class="card-foot">
-            <span>by ${byUser(r)} · ${new Date(r.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
-            ${mine ? `<button class="btn-ghost" data-del="${esc(r.id)}">Delete</button>` : ""}
-          </div>
-        </div>
-      </article>`;
-  }).join("");
 }
 
-// Small photo + name after "by" — click either to open that person's profile
-function byUser(r){
-  const p = profilesById[r.user_id];
-  const name = p?.username || r.reviewer;
-  if (!r.user_id) return esc(name);
-  return `<button type="button" class="by-user" data-user="${esc(r.user_id)}" title="View profile">` +
-         `<img src="${esc(avatarUrl(p))}" alt=""><span>${esc(name)}</span></button>`;
-}
-
-$("feed").addEventListener("click", async e => {
-  const who = e.target.closest("[data-user]");
-  if (who) return tbShowProfile(who.dataset.user);
-  const id = e.target.dataset.del;
-  if (!id || !confirm("Delete this review?")) return;
-  const rv = cache.find(r => r.id === id);
-  const { error } = await sb.from("reviews").delete().eq("id", id);
-  if (error) return toast("Delete failed: " + error.message);
-  if (rv?.video_path) await sb.storage.from(BUCKET).remove([rv.video_path]);
-  toast("Review deleted");
-  render();
-});
-
-["q","fCity","fType","fStyle","sort"].forEach(id => $(id).addEventListener(id === "q" ? "input" : "change", render));
-
-/* =====================================================================
-   NEW: Sidebar — Profile (name, photo, my videos) + Settings
-   Needs the SQL file (profiles table + avatars bucket) run in Supabase.
-   ===================================================================== */
-const AVATAR_BUCKET = "avatars";
-const DEFAULT_AVATAR = "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" fill="#2a231f"/><circle cx="20" cy="15" r="7" fill="#a99d93"/><rect x="8" y="25" width="24" height="13" rx="6" fill="#a99d93"/></svg>');
-let tbProfile = null;
-
-function tbMsg(id, text, ok){ const el = $(id); el.textContent = text; el.className = "tb-msg " + (ok ? "ok" : "err"); }
-function tbOpen(id){
-  if (!user) return tbOpenLogin();
-  $("tbSidebar").classList.remove("open");
-  if (id === "tbProfileModal") return tbShowProfile(user.id);
-  $(id).classList.add("show");
-}
-function avatarUrl(p){
-  if (!p?.avatar_path) return DEFAULT_AVATAR;
-  return sb.storage.from(AVATAR_BUCKET).getPublicUrl(p.avatar_path).data.publicUrl + "?v=" + encodeURIComponent(p.updated_at || "");
-}
-
-// Open the Profile popup for any user (yourself or someone else)
-async function tbShowProfile(userId){
-  const isMe = user && user.id === userId;
-  let p = isMe ? tbProfile : profilesById[userId];
-  if (!p) {
-    const { data } = await sb.from("profiles").select("id, username, avatar_path, updated_at").eq("id", userId).maybeSingle();
-    p = data;
-  }
-  const name = p?.username || cache.find(r => r.user_id === userId)?.reviewer || "Climber";
-  $("tbProfName").textContent = name;
-  $("tbProfAvatar").src = avatarUrl(p);
-  $("tbAvatarEdit").style.display = isMe ? "" : "none";       // only you can change your own photo
-  $("tbAvatarMsg").textContent = "";
-  $("tbVidsTitle").textContent = isMe ? "My beta videos" : `${name}'s beta videos`;
-  $("tbProfileModal").classList.add("show");
-  tbLoadVideos(userId);
-}
-function tbClose(id){
-  if (id === "tbLoginModal" && !user) return; /* must log in first */
-  $(id).classList.remove("show"); }
-
-async function tbLoadProfile(){
-  $("tbLogoutBtn").style.display = user ? "" : "none";
-  $("tbLoginBtn").style.display = user ? "none" : "";
-  document.body.classList.toggle("tb-gated", !user); // blur the site until logged in
-  if (user) $("tbLoginModal").classList.remove("show"); else if (!$("tbLoginModal").classList.contains("show")) tbOpenLogin();
-  if (!user){
-    tbProfile = null;
-    $("tbSideName").textContent = "Guest";
-    $("tbSideAvatar").src = DEFAULT_AVATAR;
+function draw(){
+  const feed = $("feed"), stats = $("stats");
+  if (loadState === "loading" && !reviews.length){
+    stats.textContent = "Loading reviews…";
+    feed.innerHTML = `<div class="skel"></div>`.repeat(3);
     return;
   }
-  const { data, error } = await sb.from("profiles").select("*").eq("id", user.id).maybeSingle();
-  if (error) console.error(error);
-  tbProfile = data || { id: user.id, username: user.email.split("@")[0], avatar_path: null };
+  if (loadState === "error" && !reviews.length){
+    stats.textContent = "";
+    feed.innerHTML = `<div class="empty"><p>Couldn't load reviews. ${esc(loadError)}</p><button type="button" class="btn-sm" data-action="retry">Try again</button></div>`;
+    return;
+  }
 
-  const name = tbProfile.username || user.email.split("@")[0];
-  const avatar = tbProfile.avatar_path
-    ? sb.storage.from(AVATAR_BUCKET).getPublicUrl(tbProfile.avatar_path).data.publicUrl + "?t=" + Date.now()
-    : DEFAULT_AVATAR;
+  const list = filtered(), active = hasFilters();
+  const rated = list.filter(r => r.rating);
+  const avg = rated.length ? (rated.reduce((s, r) => s + r.rating, 0) / rated.length).toFixed(1) + "★" : "–";
+  stats.innerHTML = `${plural(list.length, "review")} · ${plural(list.filter(r => r.video).length, "beta video")} · avg rating ${avg}` +
+    (active ? ` <button type="button" class="btn-link" data-action="clear-filters">Clear filters</button>` : "");
 
-  $("tbSideName").textContent = name;
-  $("tbProfName").textContent = name;
-  $("tbNewName").value = name;
-  $("tbSideAvatar").src = avatar;
-  $("tbProfAvatar").src = avatar;
-  if (!$("reviewer").value) $("reviewer").value = name;   // pre-fill "Your name" in the review form
+  feed.querySelectorAll("video[data-src]:not([src])").forEach(v => vidObserver?.unobserve(v));
+  if (!list.length){
+    feed.innerHTML = active
+      ? `<div class="empty"><p>No reviews match these filters.</p><button type="button" class="btn-sm" data-action="clear-filters">Clear filters</button></div>`
+      : `<div class="empty"><p>No reviews yet. Send a route and post the first beta! 💪</p></div>`;
+    return;
+  }
+  feed.innerHTML = list.map(cardHtml).join("");
+  observeVideos(feed);
 }
 
-// Upload / replace profile photo → avatars/<user id>/avatar.<ext>
-$("tbAvatarFile").addEventListener("change", async e => {
-  const file = e.target.files[0]; if (!file) return;
-  if (!file.type.startsWith("image/")) return tbMsg("tbAvatarMsg", "Please choose an image", false);
-  if (file.size > 5 * 1024 * 1024) return tbMsg("tbAvatarMsg", "Photo must be under 5 MB", false);
-  tbMsg("tbAvatarMsg", "Uploading…", true);
-  const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-  const path = `${user.id}/avatar.${ext}`;
-  const up = await sb.storage.from(AVATAR_BUCKET).upload(path, file, { upsert: true, contentType: file.type });
-  if (up.error) return tbMsg("tbAvatarMsg", up.error.message, false);
-  const { error } = await sb.from("profiles").upsert({ id: user.id, avatar_path: path, updated_at: new Date().toISOString() });
-  if (error) return tbMsg("tbAvatarMsg", error.message, false);
-  e.target.value = "";
-  tbMsg("tbAvatarMsg", "Photo updated!", true);
-  await tbLoadProfile();
-  $("tbProfAvatar").src = avatarUrl(tbProfile);
-  render();   // refresh the little photos on the review cards
-});
-
-// Show the videos this user uploaded with their reviews
-async function tbLoadVideos(userId){
-  const box = $("tbMyVideos");
-  box.innerHTML = "<small>Loading…</small>";
-  const { data, error } = await sb.from("reviews")
-    .select("*")
-    .eq("user_id", userId)
-    .not("video_path", "is", null)
-    .order("created_at", { ascending: false });
-  if (error) { box.innerHTML = `<small>${esc(error.message)}</small>`; return; }
-  if (!data.length) { box.innerHTML = "<small>No beta videos yet.</small>"; return; }
-  box.innerHTML = data.map(r => `
-  <div>
-    ${tbVideoHtml(sb.storage.from(BUCKET).getPublicUrl(r.video_path).data.publicUrl, r)}
-    <small>${esc([r.route_name, r.grade, r.gym].filter(Boolean).join(" · "))}</small>
-  </div>`).join("");
+function cardHtml(r){
+  const media = r.video ? tbVideoHtml(r.video, r) : `<div class="no-video">No beta video yet</div>`;
+  const hold = r.holdColor ? `<span class="hold-dot" style="background:${r.holdColor}"></span>${esc(r.holdColorName)} holds · ` : "";
+  const mine = user && r.user_id === user.id;
+  const date = new Date(r.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  return `
+    <article class="card">
+      ${media}
+      <div class="card-body">
+        <div class="card-title"><h3>${esc(r.routeName)}</h3><span class="grade">${esc(r.grade)}</span></div>
+        <div class="meta">📍 <strong>${esc(r.gym)}</strong>, ${esc(r.city)}<br>🧱 ${esc(r.area)}<br>${hold}${esc(r.type)}</div>
+        ${r.rating ? `<div class="rating" role="img" aria-label="${r.rating} out of 5 stars">${"★".repeat(r.rating)}<span>${"★".repeat(5 - r.rating)}</span></div>` : ""}
+        ${r.styles.length ? `<div class="tags">${r.styles.map(s => `<span class="tag">${esc(s)}</span>`).join("")}</div>` : ""}
+        <div class="review-text">${esc(r.text)}</div>
+        <div class="card-foot">
+          <span>by ${byUser(r)} · ${date}</span>
+          ${mine ? `<button type="button" class="btn-ghost" data-del="${esc(r.id)}">Delete</button>` : ""}
+        </div>
+      </div>
+    </article>`;
 }
 
-// Video + beta details box. Full screen goes through our ⛶ button (Chrome's own full screen
-// button can't show anything on top of the video, so it is hidden).
+// Small photo + name after "by" — tap to open that person's profile
+function byUser(r){
+  const p = profilesById[r.user_id];
+  const name = p?.username || r.reviewer || "Climber";
+  if (!r.user_id) return esc(name);
+  return `<button type="button" class="by-user" data-user="${esc(r.user_id)}" title="View profile"><img src="${esc(avatarUrl(p))}" alt="" loading="lazy"><span>${esc(name)}</span></button>`;
+}
+
+async function deleteReview(btn){
+  const id = btn.dataset.del;
+  if (!confirm("Delete this review? This can't be undone.")) return;
+  const rv = reviews.find(r => String(r.id) === id);
+  busy(btn, "Deleting…");
+  // .select() tells us whether a row was really removed (security rules can silently block a delete)
+  const { data, error } = await sb.from("reviews").delete().eq("id", rv ? rv.id : id).select("id");
+  if (error || !data?.length){ busy(btn); return toast("Couldn't delete: " + (error ? friendly(error) : "this review isn't yours or is already gone."), "err"); }
+  if (rv?.video_path) sb.storage.from(BUCKET).remove([rv.video_path]).then(({ error }) => error && console.error(error));
+  reviews = reviews.filter(r => String(r.id) !== id);
+  reviewsSig = sigOf(reviews);
+  fillGymFilter();
+  draw();
+  toast("Review deleted");
+}
+
+/* =====================================================================
+   Videos: load only when near the screen, one plays at a time
+   ===================================================================== */
+const vidObserver = "IntersectionObserver" in window
+  ? new IntersectionObserver(entries => entries.forEach(en => {
+      if (!en.isIntersecting) return;
+      const v = en.target; v.src = v.dataset.src; vidObserver.unobserve(v);
+    }), { rootMargin: "400px 0px" })
+  : null;
+function observeVideos(root){
+  root.querySelectorAll("video[data-src]:not([src])").forEach(v => vidObserver ? vidObserver.observe(v) : (v.src = v.dataset.src));
+}
+document.addEventListener("play", e => {
+  document.querySelectorAll("video").forEach(v => { if (v !== e.target && !v.paused) v.pause(); });
+}, true);
+
+// Video + beta details shown in full screen. Full screen goes through our ⛶ button
+// (the browser's own full screen button can't show anything on top of the video, so it is hidden).
 function tbVideoHtml(url, r){
-  const title = [r.route_name && r.route_name !== "-" ? r.route_name : "", r.grade, r.type].filter(Boolean).join(" · ");
+  const title = [r.routeName && r.routeName !== "-" ? r.routeName : "", r.grade, r.type].filter(Boolean).join(" · ");
   const where = [r.gym, r.area, r.city].filter(Boolean).join(" · ");
-  const stars = Number(r.rating) > 0 ? "★".repeat(Number(r.rating)) : "";
-  const styles = Array.isArray(r.styles) ? r.styles.join(", ") : (r.styles || "");
-  const extra = [r.hold_color_name ? r.hold_color_name + " holds" : "", stars, styles].filter(Boolean).join(" · ");
+  const extra = [r.holdColorName ? r.holdColorName + " holds" : "", r.rating ? "★".repeat(r.rating) : "", r.styles.join(", ")].filter(Boolean).join(" · ");
   return `<div class="tb-vid">
-    <video src="${esc(url)}" controls controlslist="nofullscreen" playsinline preload="metadata"></video>
+    <video data-src="${esc(url)}#t=0.1" controls controlslist="nofullscreen" playsinline preload="metadata"></video>
     <button type="button" class="tb-fs" title="Full screen" aria-label="Full screen">⛶</button>
     <div class="tb-vid-info">
       <b>${esc(title || "Beta video")}</b>
@@ -694,43 +950,174 @@ function tbVidFull(box){
   if (document.fullscreenElement || document.webkitFullscreenElement)
     return void (document.exitFullscreen ? document.exitFullscreen() : document.webkitExitFullscreen());
   const vid = box.querySelector("video");
+  if (!vid.src && vid.dataset.src) vid.src = vid.dataset.src;
   if (box.requestFullscreen) box.requestFullscreen();
   else if (box.webkitRequestFullscreen) box.webkitRequestFullscreen();
-  else if (vid.webkitEnterFullscreen) vid.webkitEnterFullscreen(); // iPhone: plain video full screen
+  else if (vid.webkitEnterFullscreen) vid.webkitEnterFullscreen();   // iPhone: plain video full screen
 }
-document.addEventListener("click", e => { const b = e.target.closest(".tb-fs"); if (b) tbVidFull(b.closest(".tb-vid")); });
 document.addEventListener("dblclick", e => { const vid = e.target.closest(".tb-vid video"); if (vid) tbVidFull(vid.closest(".tb-vid")); });
 
-async function tbSaveUsername(){
-  const name = $("tbNewName").value.trim();
-  if (name.length < 3) return tbMsg("tbNameMsg", "Username must be at least 3 characters", false);
-  const { error } = await sb.from("profiles").upsert({ id: user.id, username: name, updated_at: new Date().toISOString() });
-  if (error) return tbMsg("tbNameMsg", error.code === "23505" ? "That username is already taken" : error.message, false);
-  tbMsg("tbNameMsg", "Username saved!", true);
-  tbLoadProfile();
-  render();   // refresh the names on the review cards
+/* =====================================================================
+   Profile
+   ===================================================================== */
+async function showProfile(userId){
+  const isMe = user?.id === userId;
+  const fallback = reviews.find(r => r.user_id === userId)?.reviewer || "Climber";
+  const paint = p => {
+    const name = p?.username || (isMe ? myName() : fallback);
+    $("tbProfName").textContent = name;
+    $("tbProfAvatar").src = avatarUrl(p);
+    $("tbVidsTitle").textContent = isMe ? "My beta videos" : `${name}'s beta videos`;
+  };
+  let p = isMe ? myProfile : profilesById[userId];
+  paint(p);
+  $("tbAvatarEdit").hidden = !isMe;   // only you can change your own photo
+  setMsg("tbAvatarMsg");
+  openModal("tbProfileModal");
+  loadUserVideos(userId);
+  if (!p){
+    const { data } = await sb.from("profiles").select(PROFILE_COLS).eq("id", userId).maybeSingle();
+    if (data){ profilesById[userId] = data; paint(data); }
+  }
 }
 
-async function tbChangePassword(){
-  const cur = $("tbCurPw").value, pw = $("tbNewPw").value, pw2 = $("tbNewPw2").value;
-  if (pw.length < 6) return tbMsg("tbPwMsg", "New password must be at least 6 characters", false);
-  if (pw !== pw2) return tbMsg("tbPwMsg", "New passwords don't match", false);
-  const check = await sb.auth.signInWithPassword({ email: user.email, password: cur });   // confirm current password
-  if (check.error) return tbMsg("tbPwMsg", "Current password is wrong", false);
-  const { error } = await sb.auth.updateUser({ password: pw });
-  if (error) return tbMsg("tbPwMsg", error.message, false);
-  ["tbCurPw", "tbNewPw", "tbNewPw2"].forEach(id => $(id).value = "");
-  tbMsg("tbPwMsg", "Password changed!", true);
+let vidsSeq = 0;
+async function loadUserVideos(userId){
+  const seq = ++vidsSeq, box = $("tbMyVideos");
+  box.innerHTML = `<small>Loading…</small>`;
+  const { data, error } = await sb.from("reviews").select("*")
+    .eq("user_id", userId).not("video_path", "is", null).order("created_at", { ascending: false });
+  if (seq !== vidsSeq) return;
+  if (error){ box.innerHTML = `<small>${esc(friendly(error))}</small>`; return; }
+  if (!data.length){
+    box.innerHTML = `<small>${user?.id === userId ? "No beta videos yet. Add one with your next review." : "No beta videos yet."}</small>`;
+    return;
+  }
+  box.innerHTML = data.map(normalize).map(r => `
+    <div>
+      ${tbVideoHtml(r.video, r)}
+      <small>${esc([r.routeName, r.grade, r.gym].filter(Boolean).join(" · "))}</small>
+    </div>`).join("");
+  observeVideos(box);
 }
 
-async function tbLogout(){
-  await sb.auth.signOut();
-  $("tbSidebar").classList.remove("open");
+// Upload / replace profile photo → avatars/<user id>/avatar.<ext>
+$("tbAvatarFile").addEventListener("change", async e => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file || !user) return;
+  if (!file.type.startsWith("image/")) return setMsg("tbAvatarMsg", "Choose an image file", false);
+  if (file.size > MAX_AVATAR_MB * 1048576) return setMsg("tbAvatarMsg", `Photo must be under ${MAX_AVATAR_MB} MB`, false);
+  setMsg("tbAvatarMsg", "Uploading…", true);
+  const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+  const path = `${user.id}/avatar.${ext}`;
+  const up = await sb.storage.from(AVATAR_BUCKET).upload(path, file, { upsert: true, contentType: file.type });
+  if (up.error) return setMsg("tbAvatarMsg", friendly(up.error), false);
+  const stamp = nowIso();
+  const { data, error } = await sb.from("profiles").upsert({ id: user.id, avatar_path: path, updated_at: stamp }).select(PROFILE_COLS).maybeSingle();
+  if (error) return setMsg("tbAvatarMsg", friendly(error), false);
+  myProfile = data || { ...myProfile, avatar_path: path, updated_at: stamp };
+  profilesById[user.id] = myProfile;
+  setMsg("tbAvatarMsg", "Photo updated", true);
+  $("tbProfAvatar").src = avatarUrl(myProfile);
+  refreshMeUI();
+  draw();   // refresh the little photos on your review cards
+});
+
+/* =====================================================================
+   Settings
+   ===================================================================== */
+function openSettings(){
+  $("tbNewName").value = myProfile?.username || "";
+  $("tbNewName").placeholder = myName();
+  $("tbPwEmail").value = user.email || "";
+  ["tbNameMsg","tbPwMsg"].forEach(id => setMsg(id));
+  openModal("tbSettingsModal");
 }
+
+$("tbNameForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const name = $("tbNewName").value.trim(), btn = $("tbNameBtn");
+  if (name.length < 3) return setMsg("tbNameMsg", "Username must be at least 3 characters", false);
+  if (name === myProfile?.username) return setMsg("tbNameMsg", "That's already your username", true);
+  busy(btn, "Saving…");
+  const { data, error } = await sb.from("profiles").upsert({ id: user.id, username: name, updated_at: nowIso() }).select(PROFILE_COLS).maybeSingle();
+  busy(btn);
+  if (error) return setMsg("tbNameMsg", error.code === "23505" ? "That username is already taken" : friendly(error), false);
+  myProfile = data || { ...myProfile, username: name };
+  profilesById[user.id] = myProfile;
+  setMsg("tbNameMsg", "Username saved", true);
+  refreshMeUI();
+  draw();   // refresh the names on your review cards
+});
+
+$("tbPwForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const cur = $("tbCurPw").value, pw = $("tbNewPw").value, pw2 = $("tbNewPw2").value, btn = $("tbPwBtn");
+  if (pw.length < 6) return setMsg("tbPwMsg", "New password must be at least 6 characters", false);
+  if (pw !== pw2) return setMsg("tbPwMsg", "New passwords don't match", false);
+  if (pw === cur) return setMsg("tbPwMsg", "New password is the same as the current one", false);
+  busy(btn, "Changing…");
+  try {
+    const check = await sb.auth.signInWithPassword({ email: user.email, password: cur });   // confirm current password
+    if (check.error) return setMsg("tbPwMsg", "Current password is wrong", false);
+    const { error } = await sb.auth.updateUser({ password: pw });
+    if (error) return setMsg("tbPwMsg", friendly(error), false);
+    ["tbCurPw","tbNewPw","tbNewPw2"].forEach(id => $(id).value = "");
+    setMsg("tbPwMsg", "Password changed", true);
+  } finally { busy(btn); }
+});
+
+/* =====================================================================
+   One click handler for every button on the page
+   ===================================================================== */
+document.addEventListener("click", e => {
+  // Clicking the dark area around a popup closes it
+  if (e.target.classList?.contains("tb-modal")) return e.target.id === "tbLoginModal" ? dismissLogin() : closeModal(e.target.id);
+
+  const a = e.target.closest("[data-action]");
+  if (a){
+    switch (a.dataset.action){
+      case "toggle-sidebar": return toggleSidebar();
+      case "close-sidebar":  return closeSidebar();
+      case "profile":        return user ? showProfile(user.id) : openLogin();
+      case "settings":       return user ? openSettings() : openLogin();
+      case "login":          return openLogin();
+      case "logout":         return logout();
+      case "close":          return closeModal(a.dataset.target);
+      case "dismiss-login":  return dismissLogin();
+      case "switch-auth":    setAuthMode(!signUpMode); return $(signUpMode ? "tbLoginName" : "tbLoginEmail").focus();
+      case "retry":          return fetchReviews();
+      case "clear-filters":  return clearFilters();
+      case "remove-video":   return clearVideo();
+      case "toggle-form":    if (isMobile.matches) setFormOpen($("reviewForm").classList.contains("collapsed")); return;
+    }
+  }
+  const who = e.target.closest("[data-user]"); if (who) return showProfile(who.dataset.user);
+  const del = e.target.closest("[data-del]");  if (del) return deleteReview(del);
+  const fs  = e.target.closest(".tb-fs");      if (fs)  return tbVidFull(fs.closest(".tb-vid"));
+});
 
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape") { tbClose("tbProfileModal"); tbClose("tbSettingsModal"); tbClose("tbLoginModal"); $("tbSidebar").classList.remove("open"); }
+  if (e.key !== "Escape") return;
+  const open = [...document.querySelectorAll(".tb-modal.show")].pop();
+  if (open) return open.id === "tbLoginModal" ? dismissLogin() : closeModal(open.id);
+  closeSidebar();
 });
+
+// Filters: search waits for a short pause in typing, the dropdowns apply instantly
+let qTimer;
+$("q").addEventListener("input", () => { clearTimeout(qTimer); qTimer = setTimeout(draw, 150); });
+["fCity","fGym","fType","fStyle","sort"].forEach(id => $(id).addEventListener("change", draw));
+
+// Coming back to the tab after a while: quietly check for new reviews
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && Date.now() - lastFetch > 60000) fetchReviews();
+});
+
+/* ---------- Start ---------- */
+refreshMeUI();
+fetchReviews();
 </script>
 </body>
 </html>
