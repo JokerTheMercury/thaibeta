@@ -35,6 +35,7 @@ body{margin:0;min-height:100vh;min-height:100dvh;font-family:system-ui,-apple-sy
 body.no-scroll{overflow:hidden}
 button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:12px 16px;cursor:pointer;color:inherit;background:none}
 button:disabled{opacity:.55;cursor:wait}
+#submitBtn:disabled:not([data-label]){cursor:not-allowed}
 button,.chip,.file-drop{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 input[type=text],input[type=email],input[type=password],input[type=search],select,textarea{
@@ -365,7 +366,7 @@ body.tb-gated #tbLoginModal{background:rgba(10,8,7,.7)}
       <label for="reviewText">Review</label>
       <textarea id="reviewText" maxlength="3000" placeholder="How did it feel? Crux, sandbagged or soft, tips for the sequence..." required></textarea>
 
-      <span class="label">Beta video (optional)</span>
+      <span class="label">Beta video (required)</span>
       <button type="button" class="file-drop" id="fileDrop">📹 Choose or drop a video<br><small>MP4 / MOV / WebM · max 50 MB</small></button>
       <input type="file" id="video" accept="video/*" hidden />
       <div class="picked" id="videoPicked" hidden><span id="videoName"></span><button type="button" class="btn-link" data-action="remove-video">Remove</button></div>
@@ -616,8 +617,7 @@ function refreshMeUI(){
   $("tbSideName").textContent = user ? myName() : "Guest";
   $("tbSideAvatar").src = user ? avatarUrl(myProfile) : DEFAULT_AVATAR;
   $("postingAs").innerHTML = user ? `Posting as <b>${esc(myName())}</b>` : "Log in when you're ready to publish.";
-  const btn = $("submitBtn");
-  if (!btn.disabled) btn.textContent = user ? "Publish review" : "Log in to publish";
+  syncSubmit();
 }
 
 async function logout(){
@@ -695,6 +695,7 @@ function setVideo(file){
   const p = $("videoPreview"); p.src = videoUrl; p.hidden = false;
   $("videoName").textContent = `${file.name} (${mb(file.size)} MB)`;
   $("videoPicked").hidden = false;
+  syncSubmit();
 }
 function clearVideo(){
   if (videoUrl) URL.revokeObjectURL(videoUrl);
@@ -702,6 +703,14 @@ function clearVideo(){
   const p = $("videoPreview"); p.pause(); p.removeAttribute("src"); p.load(); p.hidden = true;
   $("videoPicked").hidden = true;
   $("video").value = "";
+  syncSubmit();
+}
+// Publish button stays grey until a video is chosen
+function syncSubmit(){
+  const btn = $("submitBtn");
+  if ("label" in btn.dataset) return;   // busy uploading/saving, leave it alone
+  btn.disabled = !videoFile;
+  btn.textContent = !videoFile ? "Add a video to publish" : (user ? "Publish review" : "Log in to publish");
 }
 const drop = $("fileDrop");
 drop.addEventListener("click", () => $("video").click());
@@ -709,6 +718,7 @@ $("video").addEventListener("change", e => setVideo(e.target.files[0]));
 ["dragenter","dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("drag"); }));
 ["dragleave","drop"].forEach(ev => drop.addEventListener(ev, () => drop.classList.remove("drag")));
 drop.addEventListener("drop", e => { e.preventDefault(); setVideo(e.dataTransfer.files[0]); });
+syncSubmit();
 
 // Phones / tablets: the form folds up so the reviews are visible first
 function setFormOpen(open){
@@ -726,6 +736,7 @@ syncFormLayout();
 $("reviewForm").addEventListener("submit", async e => {
   e.preventDefault();
   if (!user){ toast("Log in to publish your review"); return openLogin(); }
+  if (!videoFile){ toast("Upload a beta video before publishing", "err"); return; }
   if (!rating){ toast("Give the route a star rating first", "err"); $("stars").querySelector("button").focus(); return; }
   const btn = $("submitBtn");
   let video_path = null;
