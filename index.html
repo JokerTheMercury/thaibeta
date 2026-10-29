@@ -7,6 +7,9 @@
 <meta name="description" content="Review climbing routes and share beta videos from gyms across Thailand." />
 <title>ThaiBeta — Climbing Route Reviews</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧗</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>
 /* ===================== Tokens ===================== */
@@ -16,6 +19,7 @@
   --text:#f3ede7;--muted:#a99d93;--faint:#4a3d34;
   --accent:#ff7a1a;--accent-2:#ffb26b;--on-accent:#1a0f05;--tag-bg:#3a2a1d;
   --danger:#e5484d;--ok:#5ad48a;
+  --display:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI","Noto Sans Thai",sans-serif;
   --radius:14px;--side-w:min(260px,82vw);
   --safe-t:env(safe-area-inset-top,0px);--safe-b:env(safe-area-inset-bottom,0px);
   --safe-l:env(safe-area-inset-left,0px);--safe-r:env(safe-area-inset-right,0px);
@@ -45,10 +49,15 @@ label,.label{display:block;font-size:.85rem;color:var(--muted);margin:12px 0 6px
 .btn-link:hover{color:var(--text)}
 
 /* ===================== Layout ===================== */
-header{padding:calc(28px + var(--safe-t)) 24px 12px;text-align:center}
-header h1{margin:0;font-size:2rem}
-header h1 span{color:var(--accent)}
-header p{margin:6px 0 0;color:var(--muted)}
+header{padding:0 24px 8px}
+.brand{display:inline-flex;align-items:center;gap:8px;height:38px;margin:calc(14px + var(--safe-t)) 0 0 44px;color:var(--text);text-decoration:none;
+  font-family:var(--display);font-weight:800;font-size:1.15rem;letter-spacing:-.02em;border-radius:6px}
+.brand svg{width:22px;height:22px;flex:none}
+.hero{padding:clamp(28px,6vw,64px) 0 clamp(8px,2vw,16px);max-width:900px}
+.hero h1{margin:0;font-family:var(--display);font-weight:800;font-size:clamp(2.75rem,7.5vw,5.25rem);line-height:.95;letter-spacing:-.045em;text-wrap:balance}
+.hero p{margin:18px 0 0;color:var(--muted);font-size:clamp(1rem,1.6vw,1.2rem);line-height:1.5;max-width:42ch}
+/* Same typeface on the other headings so the page feels like one piece */
+#reviewForm h2,.card-title h3,.grade,.tb-card h2,.tb-login h2,.tb-prof-name,.tb-side-name{font-family:var(--display);letter-spacing:-.02em}
 main{display:grid;grid-template-columns:380px minmax(0,1fr);gap:24px;padding:20px 24px calc(48px + var(--safe-b))}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
 
@@ -200,9 +209,10 @@ body.tb-gated #tbLoginModal{background:rgba(10,8,7,.7)}
   #reviewForm.collapsed #formBody{display:none}
 }
 @media (max-width:600px){
-  header{padding:calc(22px + var(--safe-t)) 60px 8px}
-  header h1{font-size:1.6rem}
-  header p{font-size:.88rem}
+  header{padding:0 12px 4px}
+  .brand{margin-left:54px}
+  .hero{padding:28px 0 8px}
+  .hero p{margin-top:12px}
   main{padding:12px 12px calc(32px + var(--safe-b));gap:16px}
   .panel{padding:16px}
   .tb-modal{padding:10px}
@@ -220,7 +230,7 @@ body.tb-gated #tbLoginModal{background:rgba(10,8,7,.7)}
   .chip{padding:8px 12px}
   .tb-nav{padding:12px}
 }
-@media (min-width:901px) and (max-height:760px){header{padding:16px 24px 8px}}
+@media (min-width:901px) and (max-height:760px){.hero{padding:24px 0 8px}.hero h1{font-size:clamp(2.5rem,5.5vw,4rem)}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -305,8 +315,14 @@ body.tb-gated #tbLoginModal{background:rgba(10,8,7,.7)}
 </div>
 
 <header>
-  <h1>🧗 Thai<span>Beta</span></h1>
-  <p>Review routes, share beta videos — climbing gyms across Thailand</p>
+  <a class="brand" href="./" aria-label="ThaiBeta home">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 10C4.5 6 8.3 3.4 12.7 4c4.6.6 7.6 3.8 6.7 8-.8 3.9-3.9 8-8.4 8C7 20 4.5 14.6 4.5 10Z" fill="var(--accent)"/><circle cx="9.8" cy="10.2" r="1.7" fill="var(--bg)"/><circle cx="14.6" cy="13.4" r="1.3" fill="var(--bg)"/></svg>
+    ThaiBeta
+  </a>
+  <div class="hero">
+    <h1>Find your next route.</h1>
+    <p>Reviews and beta videos from climbers at gyms across Thailand.</p>
+  </div>
 </header>
 
 <main>
